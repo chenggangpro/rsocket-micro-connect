@@ -31,11 +31,11 @@ import pro.chenggang.project.rsocket.micro.connect.core.SetupSocketAcceptorInter
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.spring.EnhancedRSocketMessageHandler;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocketMessageHandler;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerSideLoggingRSocketExecutionInterceptor;
 
-import static pro.chenggang.project.rsocket.micro.connect.spring.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
 
 /**
  * @author Gang Cheng

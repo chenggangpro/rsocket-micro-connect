@@ -23,7 +23,7 @@ import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 
-import static pro.chenggang.project.rsocket.micro.connect.spring.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
 
 /**
  * @author Gang Cheng
