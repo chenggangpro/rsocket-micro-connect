@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.boot.autoconfigure.rsocket.RSocketMessagingAutoConfiguration;
 import org.springframework.boot.autoconfigure.rsocket.RSocketStrategiesAutoConfiguration;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpHeaders;
@@ -19,9 +20,16 @@ import org.springframework.http.codec.cbor.Jackson2CborDecoder;
 import org.springframework.http.codec.cbor.Jackson2CborEncoder;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.server.PathContainer.Options;
+import org.springframework.messaging.rsocket.RSocketConnectorConfigurer;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
+import pro.chenggang.project.rsocket.micro.connect.core.ChainedRSocketInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientSideLoggingRSocketExecutionInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
 
@@ -34,6 +42,12 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class})
 public class RSocketMicroConnectClientAutoConfiguration {
+
+    @Bean
+    @ConfigurationProperties(prefix = RSocketMicroConnectClientProperties.PREFIX)
+    public RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties() {
+        return new RSocketMicroConnectClientProperties();
+    }
 
     @Bean
     @ConditionalOnClass(PathPatternRouteMatcher.class)
@@ -71,5 +85,26 @@ public class RSocketMicroConnectClientAutoConfiguration {
         RSocketStrategies.Builder builder = RSocketStrategies.builder();
         customizers.orderedStream().forEach((customizer) -> customizer.customize(builder));
         return builder.build();
+    }
+
+    @Bean
+    public ClientSideLoggingRSocketExecutionInterceptor clientSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
+        return new ClientSideLoggingRSocketExecutionInterceptor(rSocketStrategies);
+    }
+
+    @Bean
+    public RSocketConnectorConfigurer clientLoggingRSocketConnectorConfigurer(RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties,
+                                                                              ObjectProvider<RSocketExecutionBeforeInterceptor> beforeInterceptors,
+                                                                              ObjectProvider<RSocketExecutionAfterInterceptor> afterInterceptors,
+                                                                              ObjectProvider<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
+        return connector -> connector
+                .interceptors(interceptorRegistry -> interceptorRegistry
+                        .forRequester(new ChainedRSocketInterceptor(rSocketMicroConnectClientProperties.getDefaultDataMimeType(),
+                                rSocketMicroConnectClientProperties.getDefaultMetadataMimeType(),
+                                beforeInterceptors.orderedStream().toList(),
+                                afterInterceptors.orderedStream().toList(),
+                                unexpectedInterceptors.orderedStream().toList()
+                        ))
+                );
     }
 }

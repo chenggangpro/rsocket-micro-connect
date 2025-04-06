@@ -53,7 +53,7 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
             MimeType metadataMimeType = exchange.getMetadataMimeType(MimeTypeUtils::parseMimeType);
             Map<String, Object> extractedMetadata = strategies.metadataExtractor().extract(payload, metadataMimeType);
             String route = (String) extractedMetadata.get(MetadataExtractor.ROUTE_KEY);
-            log.info("<=== RSocket route: {}", route);
+            log.info("<=== RSocket[{}] route: {}", rSocketExchangeType, route);
             attributes.put(ROUTE_ATTR_KEY, route);
             Optional<RemoteRSocketInfo> optionalRemoteRSocketInfo = exchange.getRemoteRSocketInfo();
             optionalRemoteRSocketInfo.ifPresent(remoteRSocketInfo -> {
