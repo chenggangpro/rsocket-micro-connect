@@ -30,7 +30,7 @@ import static org.springframework.boot.actuate.autoconfigure.tracing.TracingProp
 @Slf4j
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class, Tracer.class})
-@ConditionalOnBean(Tracer.class)
+@ConditionalOnBean({Tracer.class, ObservationRegistry.class})
 public class RSocketMicroConnectServerTracingAutoConfiguration {
 
     @Bean
