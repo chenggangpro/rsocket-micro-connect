@@ -73,6 +73,7 @@
         <license-maven-plugin.version>4.6</license-maven-plugin.version>
         <spring-boot-starter-parent.version>3.3.9</spring-boot-starter-parent.version>
         <reactor-bom.version>2024.0.4</reactor-bom.version>
+        <lombok.version>1.18.36</lombok.version>
         <rsocket.version>1.1.5</rsocket.version>
         <logback.version>1.5.17</logback.version>
         <slf4j.version>2.0.17</slf4j.version>
@@ -103,6 +104,11 @@
                 <version>${junit.version}</version>
                 <type>pom</type>
                 <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
             </dependency>
             <dependency>
                 <groupId>io.rsocket</groupId>
@@ -262,7 +268,11 @@
                         <arg>-Xplugin:ErrorProne -XepDisableWarningsInGeneratedCode</arg>
                     </compilerArgs>
                     <annotationProcessorPaths>
-                        <!-- Error Prone itself. -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                        </path>
                         <path>
                             <groupId>com.google.errorprone</groupId>
                             <artifactId>error_prone_core</artifactId>
