@@ -59,13 +59,15 @@ public class RSocketMicroConnectServerTracingAutoConfiguration {
 
     @Bean
     public RSocketServerCustomizer rSocketServerCustomizer(ObservationRegistry observationRegistry) {
-        return rSocketServer -> rSocketServer.interceptors(interceptorRegistry -> {
-            interceptorRegistry.forResponder((RSocketInterceptor) rSocket -> new ObservationResponderRSocketProxy(rSocket,
-                            observationRegistry
-                    ))
-                    .forRequester((RSocketInterceptor) rSocket -> new ObservationRequesterRSocketProxy(rSocket,
-                            observationRegistry
-                    ));
-        });
+        return rSocketServer -> rSocketServer
+                .interceptors(interceptorRegistry -> interceptorRegistry
+                        .forResponder((RSocketInterceptor) rSocket -> new ObservationResponderRSocketProxy(
+                                rSocket,
+                                observationRegistry
+                        ))
+                        .forRequester((RSocketInterceptor) rSocket -> new ObservationRequesterRSocketProxy(rSocket,
+                                observationRegistry
+                        ))
+                );
     }
 }
