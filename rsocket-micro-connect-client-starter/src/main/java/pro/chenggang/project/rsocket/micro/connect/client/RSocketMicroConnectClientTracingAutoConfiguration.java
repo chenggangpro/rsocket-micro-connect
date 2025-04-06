@@ -1,4 +1,4 @@
-package pro.chenggang.project.rsocket.micro.connect.server;
+package pro.chenggang.project.rsocket.micro.connect.client;
 
 import io.micrometer.observation.ObservationRegistry;
 import io.micrometer.tracing.Tracer;
@@ -19,9 +19,9 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.rsocket.RSocketMessagingAutoConfiguration;
 import org.springframework.boot.autoconfigure.rsocket.RSocketStrategiesAutoConfiguration;
-import org.springframework.boot.rsocket.server.RSocketServerCustomizer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.core.annotation.Order;
+import org.springframework.messaging.rsocket.RSocketConnectorConfigurer;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 
 import static org.springframework.boot.actuate.autoconfigure.tracing.MicrometerTracingAutoConfiguration.DEFAULT_TRACING_OBSERVATION_HANDLER_ORDER;
@@ -31,7 +31,7 @@ import static org.springframework.boot.actuate.autoconfigure.tracing.TracingProp
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class, Tracer.class})
 @ConditionalOnBean({Tracer.class, Propagator.class, TracingProperties.class, ObservationRegistry.class})
-public class RSocketMicroConnectServerTracingAutoConfiguration {
+public class RSocketMicroConnectClientTracingAutoConfiguration {
 
     @Bean
     @Order(DEFAULT_TRACING_OBSERVATION_HANDLER_ORDER - 1)
@@ -58,9 +58,10 @@ public class RSocketMicroConnectServerTracingAutoConfiguration {
     }
 
     @Bean
-    public RSocketServerCustomizer rSocketServerCustomizer(ObservationRegistry observationRegistry) {
-        return rSocketServer -> rSocketServer.interceptors(interceptorRegistry -> {
-            interceptorRegistry.forResponder((RSocketInterceptor) rSocket -> new ObservationResponderRSocketProxy(rSocket,
+    public RSocketConnectorConfigurer rSocketConnectorConfigurer(ObservationRegistry observationRegistry) {
+        return connector -> connector.interceptors(interceptorRegistry -> {
+            interceptorRegistry
+                    .forResponder((RSocketInterceptor) rSocket -> new ObservationResponderRSocketProxy(rSocket,
                             observationRegistry
                     ))
                     .forRequester((RSocketInterceptor) rSocket -> new ObservationRequesterRSocketProxy(rSocket,

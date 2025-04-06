@@ -1,1 +1,2 @@
 pro.chenggang.project.rsocket.micro.connect.client.RSocketMicroConnectClientAutoConfiguration
+pro.chenggang.project.rsocket.micro.connect.client.RSocketMicroConnectClientTracingAutoConfiguration
