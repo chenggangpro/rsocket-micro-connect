@@ -32,6 +32,7 @@ import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfte
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocketMessageHandler;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.HttpHeaderHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerSideLoggingRSocketExecutionInterceptor;
 
@@ -95,6 +96,12 @@ public class RSocketMicroConnectServerAutoConfiguration {
     @ConditionalOnBean(Validator.class)
     public RSocketMessageHandlerCustomizer rSocketMessageHandlerCustomizer(Validator validator) {
         return messageHandler -> messageHandler.setValidator(validator);
+    }
+
+    @Bean
+    public RSocketMessageHandlerCustomizer httpHeaderHandlerMethodArgumentResolverCustomizer() {
+        return messageHandler -> messageHandler.getArgumentResolverConfigurer()
+                .addCustomResolver(new HttpHeaderHandlerMethodArgumentResolver());
     }
 
     @Bean
