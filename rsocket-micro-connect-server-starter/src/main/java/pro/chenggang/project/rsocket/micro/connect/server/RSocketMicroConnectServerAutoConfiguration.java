@@ -22,6 +22,7 @@ import org.springframework.http.codec.cbor.Jackson2CborDecoder;
 import org.springframework.http.codec.cbor.Jackson2CborEncoder;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.server.PathContainer.Options;
+import org.springframework.messaging.handler.invocation.reactive.ArgumentResolverConfigurer;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
 import org.springframework.validation.Validator;
@@ -32,9 +33,11 @@ import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfte
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocketMessageHandler;
-import pro.chenggang.project.rsocket.micro.connect.spring.server.HttpHeaderHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerSideLoggingRSocketExecutionInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpHeaderHandlerMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.PathVariableMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.RequestBodyMethodArgumentResolver;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
 
@@ -100,8 +103,17 @@ public class RSocketMicroConnectServerAutoConfiguration {
 
     @Bean
     public RSocketMessageHandlerCustomizer httpHeaderHandlerMethodArgumentResolverCustomizer() {
-        return messageHandler -> messageHandler.getArgumentResolverConfigurer()
-                .addCustomResolver(new HttpHeaderHandlerMethodArgumentResolver());
+        return messageHandler -> {
+            ArgumentResolverConfigurer argumentResolverConfigurer = messageHandler.getArgumentResolverConfigurer();
+            argumentResolverConfigurer.addCustomResolver(new HttpHeaderHandlerMethodArgumentResolver());
+            argumentResolverConfigurer.addCustomResolver(new PathVariableMethodArgumentResolver(messageHandler.getConversionService()));
+            argumentResolverConfigurer.addCustomResolver(new RequestBodyMethodArgumentResolver(messageHandler.getDecoders(),
+                            messageHandler.getValidator(),
+                            messageHandler.getReactiveAdapterRegistry(),
+                            true
+                    )
+            );
+        };
     }
 
     @Bean
