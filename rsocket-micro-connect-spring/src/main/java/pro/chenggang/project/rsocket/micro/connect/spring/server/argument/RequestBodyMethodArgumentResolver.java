@@ -14,7 +14,6 @@ import org.springframework.core.io.buffer.DataBufferUtils;
 import org.springframework.lang.Nullable;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageHeaders;
-import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.handler.annotation.support.MethodArgumentNotValidException;
 import org.springframework.messaging.handler.invocation.MethodArgumentResolutionException;
 import org.springframework.messaging.handler.invocation.reactive.HandlerMethodArgumentResolver;
@@ -48,10 +47,6 @@ import java.util.function.Consumer;
  * {@code @jakarta.validation.Valid}. Validation failure results in an
  * {@link MethodArgumentNotValidException}.
  *
- * <p>This resolver should be ordered last if {@link #useDefaultResolution} is
- * set to {@code true} since in that case it supports all types and does not
- * require the presence of {@link Payload}.
- *
  * @author Rossen Stoyanchev
  * @since 5.2
  */
@@ -65,33 +60,14 @@ public class RequestBodyMethodArgumentResolver implements HandlerMethodArgumentR
 
     private final ReactiveAdapterRegistry adapterRegistry;
 
-    private final boolean useDefaultResolution;
-
-
-    public RequestBodyMethodArgumentResolver(List<? extends Decoder<?>> decoders, @Nullable Validator validator,
-                                             @Nullable ReactiveAdapterRegistry registry, boolean useDefaultResolution) {
+    public RequestBodyMethodArgumentResolver(List<? extends Decoder<?>> decoders,
+                                             @Nullable Validator validator,
+                                             @Nullable ReactiveAdapterRegistry registry) {
 
         Assert.isTrue(!CollectionUtils.isEmpty(decoders), "At least one Decoder is required");
         this.decoders = List.copyOf(decoders);
         this.validator = validator;
         this.adapterRegistry = registry != null ? registry : ReactiveAdapterRegistry.getSharedInstance();
-        this.useDefaultResolution = useDefaultResolution;
-    }
-
-
-    /**
-     * Return a read-only list of the configured decoders.
-     */
-    public List<Decoder<?>> getDecoders() {
-        return this.decoders;
-    }
-
-    /**
-     * Return the configured validator, if any.
-     */
-    @Nullable
-    public Validator getValidator() {
-        return this.validator;
     }
 
     /**
@@ -101,19 +77,10 @@ public class RequestBodyMethodArgumentResolver implements HandlerMethodArgumentR
         return this.adapterRegistry;
     }
 
-    /**
-     * Whether this resolver is configured to use default resolution, i.e.
-     * works for any argument type regardless of whether {@code @Payload} is
-     * present or not.
-     */
-    public boolean isUseDefaultResolution() {
-        return this.useDefaultResolution;
-    }
-
 
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
-        return parameter.hasParameterAnnotation(RequestBody.class) || this.useDefaultResolution;
+        return parameter.hasParameterAnnotation(RequestBody.class);
     }
 
 

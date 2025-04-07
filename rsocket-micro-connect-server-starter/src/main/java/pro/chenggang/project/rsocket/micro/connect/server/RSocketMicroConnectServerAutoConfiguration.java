@@ -100,7 +100,8 @@ public class RSocketMicroConnectServerAutoConfiguration {
             strategies.encoder(new Jackson2CborEncoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
             strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
                 metadataExtractorRegistry.metadataToExtract(HTTP_QUERY_MEDIA_TYPE,
-                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {},
+                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {
+                        },
                         HTTP_QUERY_METADATA_KEY
                 );
             });
@@ -132,14 +133,13 @@ public class RSocketMicroConnectServerAutoConfiguration {
             ArgumentResolverConfigurer argumentResolverConfigurer = messageHandler.getArgumentResolverConfigurer();
             argumentResolverConfigurer.addCustomResolver(new HttpHeaderHandlerMethodArgumentResolver());
             argumentResolverConfigurer.addCustomResolver(new PathVariableMethodArgumentResolver(messageHandler.getConversionService()));
-            argumentResolverConfigurer.addCustomResolver(new RequestBodyMethodArgumentResolver(messageHandler.getDecoders(),
-                            messageHandler.getValidator(),
-                            messageHandler.getReactiveAdapterRegistry(),
-                            true
-                    )
-            );
             argumentResolverConfigurer.addCustomResolver(new HttpQueryHandlerMethodArgumentResolver(messageHandler.getConversionService()));
             argumentResolverConfigurer.addCustomResolver(new HttpQueryMapHandlerMethodArgumentResolver());
+            argumentResolverConfigurer.addCustomResolver(new RequestBodyMethodArgumentResolver(messageHandler.getDecoders(),
+                            messageHandler.getValidator(),
+                            messageHandler.getReactiveAdapterRegistry()
+                    )
+            );
         };
     }
 
