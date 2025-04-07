@@ -8,6 +8,8 @@ import org.springframework.messaging.handler.annotation.Header;
 import org.springframework.messaging.handler.invocation.reactive.HandlerMethodArgumentResolver;
 import reactor.core.publisher.Mono;
 
+import java.util.Objects;
+
 /**
  * Http header handler method argument resolver
  *
@@ -25,9 +27,14 @@ public class HttpHeaderHandlerMethodArgumentResolver implements HandlerMethodArg
     @Override
     public Mono<Object> resolveArgument(MethodParameter parameter, Message<?> message) {
         Object httpHeaders = message.getHeaders().get(HttpHeaders.class.getName());
-        if (parameter.hasParameterAnnotation(Nullable.class)) {
+        if (parameter.hasParameterAnnotation(Nullable.class) && Objects.isNull(httpHeaders)) {
             return Mono.empty();
         }
-        return Mono.justOrEmpty(httpHeaders);
+        if(Objects.isNull(httpHeaders)) {
+            return Mono.error(new IllegalArgumentException("Missing HttpHeaders in Message of : "
+                    + parameter
+                    + ". You can annotate @Nullable(org.springframework.lang.Nullable) on parameter if you allow null value"));
+        }
+        return Mono.just(httpHeaders);
     }
 }
