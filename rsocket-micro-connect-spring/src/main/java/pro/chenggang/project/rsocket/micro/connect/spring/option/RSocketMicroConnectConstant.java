@@ -10,4 +10,10 @@ import org.springframework.http.MediaType;
 public abstract class RSocketMicroConnectConstant {
 
     public static final MediaType HTTP_HEADER_MEDIA_TYPE = new MediaType("application", "http-header");
+
+    public static final MediaType HTTP_QUERY_MEDIA_TYPE = new MediaType("application", "http-query");
+
+    public static final String HTTP_HEADER_METADATA_KEY = "rsocket.micro.connect.server.metadata.http-header";
+
+    public static final String HTTP_QUERY_METADATA_KEY = "rsocket.micro.connect.server.metadata.http-query";
 }

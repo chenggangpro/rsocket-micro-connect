@@ -24,6 +24,8 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
+
 /**
  * The Client side logging rsocket execution interceptor.
  *
@@ -59,7 +61,7 @@ public class ClientSideLoggingRSocketExecutionInterceptor implements RSocketExec
             optionalRemoteRSocketInfo.ifPresent(remoteRSocketInfo -> {
                 log.info("===> RSocket server address: {}", remoteRSocketInfo.getInfo());
             });
-            HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HttpHeaders.class.getName());
+            HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {

@@ -10,6 +10,8 @@ import reactor.core.publisher.Mono;
 
 import java.util.Objects;
 
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
+
 /**
  * Http header handler method argument resolver
  * Resolve for {@link RequestHeader @RequestHeader} method parameters of HttpHeaders type.
@@ -27,7 +29,7 @@ public class HttpHeaderHandlerMethodArgumentResolver implements HandlerMethodArg
 
     @Override
     public Mono<Object> resolveArgument(MethodParameter parameter, Message<?> message) {
-        Object httpHeaders = message.getHeaders().get(HttpHeaders.class.getName());
+        Object httpHeaders = message.getHeaders().get(HTTP_HEADER_METADATA_KEY);
         if (parameter.hasParameterAnnotation(Nullable.class) && Objects.isNull(httpHeaders)) {
             return Mono.empty();
         }

@@ -15,6 +15,7 @@ import org.springframework.boot.autoconfigure.rsocket.RSocketStrategiesAutoConfi
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.cbor.Jackson2CborDecoder;
 import org.springframework.http.codec.cbor.Jackson2CborEncoder;
@@ -22,6 +23,7 @@ import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.server.PathContainer.Options;
 import org.springframework.messaging.rsocket.RSocketConnectorConfigurer;
 import org.springframework.messaging.rsocket.RSocketStrategies;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 import pro.chenggang.project.rsocket.micro.connect.core.ChainedRSocketInterceptor;
@@ -32,6 +34,9 @@ import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientSideLoggi
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_METADATA_KEY;
 
 /**
  * @author Gang Cheng
@@ -59,6 +64,7 @@ public class RSocketMicroConnectClientAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnClass({ObjectMapper.class, CBORFactory.class})
     @ConditionalOnBean(Jackson2ObjectMapperBuilder.class)
     public RSocketStrategiesCustomizer jacksonCborHttpHeaderRSocketStrategyCustomizer(Jackson2ObjectMapperBuilder builder) {
         return strategies -> {
@@ -68,7 +74,24 @@ public class RSocketMicroConnectClientAutoConfiguration {
             strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
                 metadataExtractorRegistry.metadataToExtract(HTTP_HEADER_MEDIA_TYPE,
                         HttpHeaders.class,
-                        HttpHeaders.class.getName()
+                        HTTP_HEADER_METADATA_KEY
+                );
+            });
+        };
+    }
+
+    @Bean
+    @ConditionalOnClass({ObjectMapper.class, CBORFactory.class})
+    @ConditionalOnBean(Jackson2ObjectMapperBuilder.class)
+    public RSocketStrategiesCustomizer jacksonCborHttpQueryRSocketStrategyCustomizer(Jackson2ObjectMapperBuilder builder) {
+        return strategies -> {
+            ObjectMapper objectMapper = builder.createXmlMapper(false).factory(new CBORFactory()).build();
+            strategies.decoder(new Jackson2CborDecoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
+            strategies.encoder(new Jackson2CborEncoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
+            strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
+                metadataExtractorRegistry.metadataToExtract(HTTP_QUERY_MEDIA_TYPE,
+                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {},
+                        HTTP_QUERY_METADATA_KEY
                 );
             });
         };

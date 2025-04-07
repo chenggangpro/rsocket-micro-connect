@@ -36,7 +36,7 @@ public class PathVariableMethodArgumentResolver extends DestinationVariableMetho
     private static final class PathVariableNamedValueInfo extends NamedValueInfo {
 
         private PathVariableNamedValueInfo(PathVariable annotation) {
-            super(annotation.value(), true, ValueConstants.DEFAULT_NONE);
+            super(annotation.value(), annotation.required(), ValueConstants.DEFAULT_NONE);
         }
     }
 }

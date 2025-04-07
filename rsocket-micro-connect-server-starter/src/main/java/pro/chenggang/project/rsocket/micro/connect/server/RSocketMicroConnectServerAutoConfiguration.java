@@ -17,6 +17,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.boot.rsocket.server.RSocketServerCustomizer;
 import org.springframework.context.annotation.Bean;
+import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.cbor.Jackson2CborDecoder;
 import org.springframework.http.codec.cbor.Jackson2CborEncoder;
@@ -25,6 +26,7 @@ import org.springframework.http.server.PathContainer.Options;
 import org.springframework.messaging.handler.invocation.reactive.ArgumentResolverConfigurer;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.messaging.rsocket.annotation.support.RSocketMessageHandler;
+import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.validation.Validator;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
@@ -36,10 +38,15 @@ import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocket
 import pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerSideLoggingRSocketExecutionInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpHeaderHandlerMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQueryHandlerMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQueryMapHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.PathVariableMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.RequestBodyMethodArgumentResolver;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_METADATA_KEY;
 
 /**
  * @author Gang Cheng
@@ -67,6 +74,7 @@ public class RSocketMicroConnectServerAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnClass({ObjectMapper.class, CBORFactory.class})
     @ConditionalOnBean(Jackson2ObjectMapperBuilder.class)
     public RSocketStrategiesCustomizer jacksonCborHttpHeaderRSocketStrategyCustomizer(Jackson2ObjectMapperBuilder builder) {
         return strategies -> {
@@ -76,7 +84,24 @@ public class RSocketMicroConnectServerAutoConfiguration {
             strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
                 metadataExtractorRegistry.metadataToExtract(HTTP_HEADER_MEDIA_TYPE,
                         HttpHeaders.class,
-                        HttpHeaders.class.getName()
+                        HTTP_HEADER_METADATA_KEY
+                );
+            });
+        };
+    }
+
+    @Bean
+    @ConditionalOnClass({ObjectMapper.class, CBORFactory.class})
+    @ConditionalOnBean(Jackson2ObjectMapperBuilder.class)
+    public RSocketStrategiesCustomizer jacksonCborHttpQueryRSocketStrategyCustomizer(Jackson2ObjectMapperBuilder builder) {
+        return strategies -> {
+            ObjectMapper objectMapper = builder.createXmlMapper(false).factory(new CBORFactory()).build();
+            strategies.decoder(new Jackson2CborDecoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
+            strategies.encoder(new Jackson2CborEncoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
+            strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
+                metadataExtractorRegistry.metadataToExtract(HTTP_QUERY_MEDIA_TYPE,
+                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {},
+                        HTTP_QUERY_METADATA_KEY
                 );
             });
         };
@@ -113,6 +138,8 @@ public class RSocketMicroConnectServerAutoConfiguration {
                             true
                     )
             );
+            argumentResolverConfigurer.addCustomResolver(new HttpQueryHandlerMethodArgumentResolver(messageHandler.getConversionService()));
+            argumentResolverConfigurer.addCustomResolver(new HttpQueryMapHandlerMethodArgumentResolver());
         };
     }
 
