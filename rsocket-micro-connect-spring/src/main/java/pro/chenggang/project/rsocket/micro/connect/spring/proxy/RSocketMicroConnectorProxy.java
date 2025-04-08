@@ -1,0 +1,202 @@
+/*
+ *    Copyright 2009-2023 the original author or authors.
+ *
+ *    Licensed under the Apache License, Version 2.0 (the "License");
+ *    you may not use this file except in compliance with the License.
+ *    You may obtain a copy of the License at
+ *
+ *       https://www.apache.org/licenses/LICENSE-2.0
+ *
+ *    Unless required by applicable law or agreed to in writing, software
+ *    distributed under the License is distributed on an "AS IS" BASIS,
+ *    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ *    See the License for the specific language governing permissions and
+ *    limitations under the License.
+ */
+package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
+
+import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
+
+import java.io.Serial;
+import java.io.Serializable;
+import java.lang.invoke.MethodHandle;
+import java.lang.invoke.MethodHandles;
+import java.lang.invoke.MethodHandles.Lookup;
+import java.lang.invoke.MethodType;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
+import java.util.Map;
+
+import static pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil.unwrapThrowable;
+
+/**
+ * The RSocket Micro Connector Proxy.
+ *
+ * @param <T> the type parameter
+ * @author Gang Cheng
+ */
+public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Serializable {
+
+    @Serial
+    private static final long serialVersionUID = 3180228632844338801L;
+    private static final int ALLOWED_MODES = Lookup.PRIVATE | Lookup.PROTECTED | Lookup.PACKAGE | Lookup.PUBLIC;
+    private static final Constructor<Lookup> lookupConstructor;
+    private static final Method privateLookupInMethod;
+
+    static {
+        Method privateLookupIn;
+        try {
+            privateLookupIn = MethodHandles.class.getMethod("privateLookupIn", Class.class, Lookup.class);
+        } catch (NoSuchMethodException e) {
+            privateLookupIn = null;
+        }
+        privateLookupInMethod = privateLookupIn;
+
+        Constructor<Lookup> lookup = null;
+        if (privateLookupInMethod == null) {
+            // JDK 1.8
+            try {
+                lookup = Lookup.class.getDeclaredConstructor(Class.class, int.class);
+                lookup.setAccessible(true);
+            } catch (NoSuchMethodException e) {
+                throw new IllegalStateException(
+                        "There is neither 'privateLookupIn(Class, Lookup)' nor 'Lookup(Class, int)' method " +
+                                "in java.lang.invoke.MethodHandles.",
+                        e
+                );
+            } catch (Exception e) {
+                lookup = null;
+            }
+        }
+        lookupConstructor = lookup;
+    }
+
+    private final RSocketRequesterRegistry rSocketRequesterRegistry;
+    private final Class<T> serviceInterface;
+    private final Map<Method, MicroConnectorMethodInvoker> methodCache;
+
+    /**
+     * Instantiates a new rsocket service proxy.
+     *
+     * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param serviceInterface         the service interface
+     * @param methodCache              the method cache
+     */
+    public RSocketMicroConnectorProxy(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                      Class<T> serviceInterface,
+                                      Map<Method, MicroConnectorMethodInvoker> methodCache) {
+        this.rSocketRequesterRegistry = rSocketRequesterRegistry;
+        this.serviceInterface = serviceInterface;
+        this.methodCache = methodCache;
+    }
+
+    @Override
+    public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
+        try {
+            if (Object.class.equals(method.getDeclaringClass())) {
+                return method.invoke(this, args);
+            }
+            return cachedInvoker(method).invoke(proxy, method, args, rSocketRequesterRegistry);
+        } catch (Throwable t) {
+            throw unwrapThrowable(t);
+        }
+    }
+
+    private MicroConnectorMethodInvoker cachedInvoker(Method method) throws Throwable {
+        try {
+            return methodCache.computeIfAbsent(method, m -> {
+                if (m.isDefault()) {
+                    try {
+                        if (privateLookupInMethod == null) {
+                            return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava8(method));
+                        }
+                        return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava9(method));
+                    } catch (IllegalAccessException | InstantiationException | InvocationTargetException |
+                             NoSuchMethodException e) {
+                        throw new RuntimeException(e);
+                    }
+                } else {
+                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(serviceInterface, method));
+                }
+            });
+        } catch (RuntimeException re) {
+            Throwable cause = re.getCause();
+            throw cause == null ? re : cause;
+        }
+    }
+
+    private MethodHandle getMethodHandleJava9(Method method) throws NoSuchMethodException, IllegalAccessException, InvocationTargetException {
+        final Class<?> declaringClass = method.getDeclaringClass();
+        return ((Lookup) privateLookupInMethod.invoke(null, declaringClass, MethodHandles.lookup()))
+                .findSpecial(declaringClass,
+                        method.getName(),
+                        MethodType.methodType(method.getReturnType(), method.getParameterTypes()),
+                        declaringClass
+                );
+    }
+
+    private MethodHandle getMethodHandleJava8(Method method) throws IllegalAccessException, InstantiationException, InvocationTargetException {
+        final Class<?> declaringClass = method.getDeclaringClass();
+        return lookupConstructor.newInstance(declaringClass, ALLOWED_MODES)
+                .unreflectSpecial(method, declaringClass);
+    }
+
+    /**
+     * The Micro Connector Method invoker.
+     */
+    interface MicroConnectorMethodInvoker {
+
+        /**
+         * Invoke service method.
+         *
+         * @param proxy                    the proxy
+         * @param method                   the method
+         * @param args                     the args
+         * @param rSocketRequesterRegistry the rsocket requester registry
+         * @return the object
+         * @throws Throwable the throwable
+         */
+        Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable;
+    }
+
+    private static class PlainMicroConnectorMethodInvoker implements MicroConnectorMethodInvoker {
+
+        private final RSocketMicroConnectorMethod rSocketMicroConnectorMethod;
+
+        /**
+         * Instantiates a new Plain connector method invoker.
+         *
+         * @param rSocketMicroConnectorMethod the rsocket service method
+         */
+        public PlainMicroConnectorMethodInvoker(RSocketMicroConnectorMethod rSocketMicroConnectorMethod) {
+            this.rSocketMicroConnectorMethod = rSocketMicroConnectorMethod;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
+            return rSocketMicroConnectorMethod.execute(rSocketRequesterRegistry, args);
+        }
+    }
+
+    private static class DefaultMicroConnectorMethodInvoker implements MicroConnectorMethodInvoker {
+
+        private final MethodHandle methodHandle;
+
+        /**
+         * Instantiates a new Default connector method invoker.
+         *
+         * @param methodHandle the method handle
+         */
+        public DefaultMicroConnectorMethodInvoker(MethodHandle methodHandle) {
+            this.methodHandle = methodHandle;
+        }
+
+        @Override
+        public Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
+            return methodHandle.bindTo(proxy).invokeWithArguments(args);
+        }
+    }
+
+}

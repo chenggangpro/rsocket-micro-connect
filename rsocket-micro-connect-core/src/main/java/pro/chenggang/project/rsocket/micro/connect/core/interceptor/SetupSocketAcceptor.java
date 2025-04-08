@@ -1,4 +1,4 @@
-package pro.chenggang.project.rsocket.micro.connect.core;
+package pro.chenggang.project.rsocket.micro.connect.core.interceptor;
 
 import io.rsocket.ConnectionSetupPayload;
 import io.rsocket.DuplexConnection;

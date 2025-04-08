@@ -1,4 +1,4 @@
-package pro.chenggang.project.rsocket.micro.connect.core;
+package pro.chenggang.project.rsocket.micro.connect.core.interceptor;
 
 import io.rsocket.SocketAcceptor;
 import io.rsocket.metadata.WellKnownMimeType;

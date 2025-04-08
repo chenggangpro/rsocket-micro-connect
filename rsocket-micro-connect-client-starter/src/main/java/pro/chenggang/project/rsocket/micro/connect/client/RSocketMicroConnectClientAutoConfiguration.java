@@ -22,16 +22,21 @@ import org.springframework.http.codec.cbor.Jackson2CborEncoder;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.server.PathContainer.Options;
 import org.springframework.messaging.rsocket.RSocketConnectorConfigurer;
+import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketStrategies;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
-import pro.chenggang.project.rsocket.micro.connect.core.ChainedRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.interceptor.ChainedRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientSideLoggingRSocketExecutionInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.DefaultRSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
+import pro.chenggang.project.rsocket.micro.connect.spring.proxy.DefaultRSocketMicroConnectorRegistry;
+import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorRegistry;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
@@ -90,7 +95,8 @@ public class RSocketMicroConnectClientAutoConfiguration {
             strategies.encoder(new Jackson2CborEncoder(objectMapper, HTTP_QUERY_MEDIA_TYPE));
             strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
                 metadataExtractorRegistry.metadataToExtract(HTTP_QUERY_MEDIA_TYPE,
-                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {},
+                        new ParameterizedTypeReference<LinkedMultiValueMap<String, String>>() {
+                        },
                         HTTP_QUERY_METADATA_KEY
                 );
             });
@@ -129,5 +135,16 @@ public class RSocketMicroConnectClientAutoConfiguration {
                                 unexpectedInterceptors.orderedStream().toList()
                         ))
                 );
+    }
+
+    @Bean
+    public RSocketRequesterRegistry rSocketRequesterRegistry(RSocketRequester.Builder builder,
+                                                             RSocketStrategies rSocketStrategies) {
+        return new DefaultRSocketRequesterRegistry(builder, rSocketStrategies);
+    }
+
+    @Bean
+    public RSocketMicroConnectorRegistry rSocketMicroConnectorRegistry(RSocketRequesterRegistry rSocketRequesterRegistry) {
+        return new DefaultRSocketMicroConnectorRegistry(rSocketRequesterRegistry);
     }
 }

@@ -1,4 +1,4 @@
-package pro.chenggang.project.rsocket.micro.connect.core;
+package pro.chenggang.project.rsocket.micro.connect.core.interceptor;
 
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
@@ -79,17 +79,17 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
 
     @Override
     public Mono<Void> fireAndForget(Payload payload) {
-        return this.interceptMono(payload, FIRE_AND_FORGET, super.fireAndForget(payload));
+        return this.interceptMono(payload, FIRE_AND_FORGET, Mono.defer(() -> super.fireAndForget(payload)));
     }
 
     @Override
     public Mono<Payload> requestResponse(Payload payload) {
-        return this.interceptMono(payload, REQUEST_RESPONSE, super.requestResponse(payload));
+        return this.interceptMono(payload, REQUEST_RESPONSE, Mono.defer(() -> super.requestResponse(payload)));
     }
 
     @Override
     public Flux<Payload> requestStream(Payload payload) {
-        return this.interceptFlux(payload, REQUEST_STREAM, super.requestStream(payload));
+        return this.interceptFlux(payload, REQUEST_STREAM, Flux.defer(() -> super.requestStream(payload)));
     }
 
     @Override
@@ -152,7 +152,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                                         return chain.next(exchange);
                                                     });
                                                 })
-                                                .then(Mono.defer(() -> monoExecution));
+                                                .then(monoExecution);
                                     },
                                     attributes -> invokeOnComplete(rSocketExchangeType, attributes),
                                     (attributes, err) -> invokeOnError(rSocketExchangeType, attributes, err),
@@ -183,7 +183,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                                         return chain.next(exchange);
                                                     });
                                                 })
-                                                .thenMany(Flux.defer(() -> fluxExecution));
+                                                .thenMany(fluxExecution);
                                     },
                                     attributes -> invokeOnComplete(rSocketExchangeType, attributes),
                                     (attributes, err) -> invokeOnError(rSocketExchangeType, attributes, err),
@@ -223,8 +223,8 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     }
 
     private Mono<Void> invokeOnError(RSocketExchangeType rSocketExchangeType,
-                                  Map<String, Object> attributes,
-                                  Throwable err) {
+                                     Map<String, Object> attributes,
+                                     Throwable err) {
         if (unexpectedChain.isEmpty()) {
             return this.cleanupAttributes(attributes);
         }

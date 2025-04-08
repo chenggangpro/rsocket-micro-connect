@@ -55,20 +55,20 @@ public class ClientSideLoggingRSocketExecutionInterceptor implements RSocketExec
             MimeType metadataMimeType = exchange.getMetadataMimeType(MimeTypeUtils::parseMimeType);
             Map<String, Object> extractedMetadata = strategies.metadataExtractor().extract(payload, metadataMimeType);
             String route = (String) extractedMetadata.get(MetadataExtractor.ROUTE_KEY);
-            log.info("===> RSocket[{}] route: {}", rSocketExchangeType, route);
+            log.info("==> RSocket[{}] route: {}", rSocketExchangeType, route);
             attributes.put(ROUTE_ATTR_KEY, route);
             Optional<RemoteRSocketInfo> optionalRemoteRSocketInfo = exchange.getRemoteRSocketInfo();
             optionalRemoteRSocketInfo.ifPresent(remoteRSocketInfo -> {
-                log.info("===> RSocket server address: {}", remoteRSocketInfo.getInfo());
+                log.info("==> RSocket server address: {}", remoteRSocketInfo.getInfo());
             });
             HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug("===> Http header: Key -> {}, Value -> ******", k);
+                        log.debug("==> Http header: Key -> {}, Value -> ******", k);
                         return;
                     }
-                    log.debug("===> Http header: Key -> {}, Value -> {}", k, v);
+                    log.debug("==> Http header: Key -> {}, Value -> {}", k, v);
                 });
             }
         }
@@ -79,7 +79,7 @@ public class ClientSideLoggingRSocketExecutionInterceptor implements RSocketExec
     public Mono<Void> interceptAfter(RSocketExchange exchange, RSocketInterceptorChain chain) {
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
-        log.info("<=== RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
+        log.info("<== RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
         return chain.next(exchange);
     }
 
@@ -88,8 +88,8 @@ public class ClientSideLoggingRSocketExecutionInterceptor implements RSocketExec
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<Throwable> optionalThrowable = exchange.getError();
-        optionalThrowable.ifPresent(throwable -> log.error("===> RSocket route: {}", route, throwable));
-        log.info("<=== RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
+        optionalThrowable.ifPresent(throwable -> log.error("==> RSocket route: {}", route, throwable));
+        log.info("<== RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
         return chain.next(exchange);
     }
 
