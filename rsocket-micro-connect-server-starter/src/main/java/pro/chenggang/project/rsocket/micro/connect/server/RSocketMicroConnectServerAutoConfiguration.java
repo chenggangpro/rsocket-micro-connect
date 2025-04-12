@@ -32,6 +32,7 @@ import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.interceptor.SetupSocketAcceptorInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocketMessageHandler;
@@ -166,9 +167,9 @@ public class RSocketMicroConnectServerAutoConfiguration {
                                                                          ObjectProvider<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
         return new SetupSocketAcceptorInterceptor(rSocketMicroConnectServerProperties.getDefaultDataMimeType(),
                 rSocketMicroConnectServerProperties.getDefaultMetadataMimeType(),
-                beforeInterceptors.orderedStream().toList(),
-                afterInterceptors.orderedStream().toList(),
-                unexpectedInterceptors.orderedStream().toList()
+                beforeInterceptors.orderedStream().filter(InterceptorType::isServerSide).toList(),
+                afterInterceptors.orderedStream().filter(InterceptorType::isServerSide).toList(),
+                unexpectedInterceptors.orderedStream().filter(InterceptorType::isServerSide).toList()
         );
     }
 

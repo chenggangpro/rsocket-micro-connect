@@ -24,6 +24,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
+import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType.SERVER;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
 
 /**
@@ -55,12 +56,17 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
             MimeType metadataMimeType = exchange.getMetadataMimeType(MimeTypeUtils::parseMimeType);
             Map<String, Object> extractedMetadata = strategies.metadataExtractor().extract(payload, metadataMimeType);
             String route = (String) extractedMetadata.get(MetadataExtractor.ROUTE_KEY);
-            log.info("<== RSocket[{}] route: {}", rSocketExchangeType, route);
             attributes.put(ROUTE_ATTR_KEY, route);
             Optional<RemoteRSocketInfo> optionalRemoteRSocketInfo = exchange.getRemoteRSocketInfo();
-            optionalRemoteRSocketInfo.ifPresent(remoteRSocketInfo -> {
-                log.info("<== RSocket client address: {}", remoteRSocketInfo.getInfo());
-            });
+            if (optionalRemoteRSocketInfo.isPresent()) {
+                log.info("<== RSocket[{}]: {}, client: {}",
+                        rSocketExchangeType,
+                        route,
+                        optionalRemoteRSocketInfo.get().getInfo()
+                );
+            } else {
+                log.info("<== RSocket[{}]: {}", rSocketExchangeType, route);
+            }
             HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
@@ -77,24 +83,71 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
 
     @Override
     public Mono<Void> interceptAfter(RSocketExchange exchange, RSocketInterceptorChain chain) {
+        RSocketExchangeType rSocketExchangeType = exchange.getType();
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
+        Duration costDuration = Duration.between(executionInstant, Instant.now());
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
-        log.info("==> RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
+        Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
+        if (optionalInfo.isPresent()) {
+            log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                    rSocketExchangeType,
+                    route,
+                    optionalInfo.get().getInfo(),
+                    costDuration
+            );
+        } else {
+            log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+        }
         return chain.next(exchange);
     }
 
     @Override
     public Mono<Void> interceptUnexpected(RSocketExchange exchange, RSocketInterceptorChain chain) {
+        RSocketExchangeType rSocketExchangeType = exchange.getType();
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
+        Duration costDuration = Duration.between(executionInstant, Instant.now());
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<Throwable> optionalThrowable = exchange.getError();
-        optionalThrowable.ifPresent(throwable -> log.error("==> RSocket route: {}", route, throwable));
-        log.info("==> RSocket route: {}, Cost: {}", route, Duration.between(executionInstant, Instant.now()));
+        Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
+        if (optionalInfo.isPresent()) {
+            if (optionalThrowable.isPresent()) {
+                log.error("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                        rSocketExchangeType,
+                        route,
+                        optionalInfo.get().getInfo(),
+                        costDuration,
+                        optionalThrowable.get()
+                );
+            } else {
+                log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                        rSocketExchangeType,
+                        route,
+                        optionalInfo.get().getInfo(),
+                        costDuration
+                );
+            }
+        } else {
+            if (optionalThrowable.isPresent()) {
+                log.error("==> RSocket[{}]: {}, Cost: {}",
+                        rSocketExchangeType,
+                        route,
+                        costDuration,
+                        optionalThrowable.get()
+                );
+            } else {
+                log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+            }
+        }
         return chain.next(exchange);
     }
 
     @Override
     public int getOrder() {
         return HIGHEST_PRECEDENCE;
+    }
+
+    @Override
+    public InterceptorType interceptorType() {
+        return SERVER;
     }
 }

@@ -4,6 +4,8 @@ import lombok.AccessLevel;
 import lombok.Builder;
 import lombok.RequiredArgsConstructor;
 
+import java.util.Objects;
+
 /**
  * The Remote rsocket info.
  *
@@ -15,13 +17,20 @@ import lombok.RequiredArgsConstructor;
 @RequiredArgsConstructor(access = AccessLevel.PRIVATE)
 public class RemoteRSocketInfo {
 
-    public static final String ATTRIBUTE_KEY = RemoteRSocketInfo.class.getName()+".attribute-key";
+    public static final String ATTRIBUTE_KEY = RemoteRSocketInfo.class.getName() + ".attribute-key";
 
     private final String host;
     private final int port;
 
     public String getInfo() {
         return this.host + ":" + this.port;
+    }
+
+    public String getInfo(String path) {
+        if (Objects.isNull(path) || path.isEmpty()) {
+            return this.host + ":" + this.port;
+        }
+        return this.host + ":" + this.port + (path.startsWith("/") ? path : "/" + path);
     }
 
     @Override

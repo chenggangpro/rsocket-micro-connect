@@ -4,6 +4,8 @@ import io.rsocket.metadata.WellKnownMimeType;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.Duration;
+
 /**
  * The RSocket micro connect server properties.
  *
@@ -19,6 +21,16 @@ public class RSocketMicroConnectClientProperties {
      * The properties PREFIX.
      */
     public static final String PREFIX = "rsocket-micro-connect.client";
+
+    /**
+     * Whether enable discover.
+     */
+    public boolean enableDiscover = false;
+
+    /**
+     * The Refresh discover interval.
+     */
+    public Duration refreshDiscoverInterval = Duration.ofSeconds(10);
 
     /**
      * The Default data mime type.

@@ -9,7 +9,7 @@ import reactor.core.publisher.Mono;
  * @version 0.1.0
  * @since 0.1.0
  */
-public interface RSocketExecutionBeforeInterceptor {
+public interface RSocketExecutionBeforeInterceptor extends RSocketExecutionInterceptor {
 
     /**
      * Intercept the execution of an RSocket <i>before</i> its invocation.

@@ -1,8 +1,14 @@
 package pro.chenggang.project.rsocket.micro.connect.core.util;
 
+import io.rsocket.DuplexConnection;
+import io.rsocket.RSocket;
+import io.rsocket.util.RSocketProxy;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import pro.chenggang.project.rsocket.micro.connect.core.defaults.RemoteRSocketInfo;
 
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
 import java.lang.reflect.GenericArrayType;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
@@ -11,9 +17,15 @@ import java.lang.reflect.Type;
 import java.lang.reflect.TypeVariable;
 import java.lang.reflect.UndeclaredThrowableException;
 import java.lang.reflect.WildcardType;
+import java.net.InetAddress;
+import java.net.InetSocketAddress;
+import java.net.SocketAddress;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
 
 /**
  * The type RSocket micro connect util.
@@ -25,6 +37,103 @@ import java.util.List;
 @Slf4j
 public abstract class RSocketMicroConnectUtil {
 
+    /**
+     * Gets remote rsocket info.
+     *
+     * @param rSocket the rsocket
+     * @return the remote rsocket info
+     */
+    public static Optional<RemoteRSocketInfo> getRemoteRSocketInfo(@NonNull RSocket rSocket) {
+        try {
+            RSocket unwrapedRsocket = unwrapRSocketProxy(rSocket);
+            Field connectionField = findField(unwrapedRsocket.getClass(), "connection", DuplexConnection.class);
+            if (Objects.isNull(connectionField)) {
+                log.warn("Unable to get DuplexConnection field from RSocket: {}", unwrapedRsocket);
+                return Optional.empty();
+            }
+            connectionField.trySetAccessible();
+            DuplexConnection duplexConnection = (DuplexConnection) connectionField.get(unwrapedRsocket);
+            SocketAddress socketAddress = duplexConnection.remoteAddress();
+            if (socketAddress instanceof InetSocketAddress inetSocketAddress) {
+                RemoteRSocketInfo remoteRSocketInfo = RemoteRSocketInfo.builder()
+                        .host(inetSocketAddress.getHostString())
+                        .port(inetSocketAddress.getPort())
+                        .build();
+                return Optional.of(remoteRSocketInfo);
+            }
+            log.warn("Unable to get remote rsocket info from SocketAddress: {} of RSocket: {}", socketAddress, unwrapedRsocket);
+        } catch (IllegalAccessException e) {
+            log.warn("Unable to get remote rsocket info from RSocket: {}", rSocket, e);
+        }
+        return Optional.empty();
+    }
+
+    /**
+     * Unwrap rsocket proxy.
+     *
+     * @param rSocket the rsocket
+     * @return the rsocket
+     * @throws IllegalAccessException the illegal access exception
+     */
+    public static RSocket unwrapRSocketProxy(@NonNull RSocket rSocket) throws IllegalAccessException {
+        if (!(rSocket instanceof RSocketProxy)) {
+            return rSocket;
+        }
+        Field field = findField(RSocketProxy.class, "source", RSocket.class);
+        if (Objects.isNull(field)) {
+            return rSocket;
+        }
+        field.trySetAccessible();
+        RSocket source = (RSocket) field.get(rSocket);
+        return unwrapRSocketProxy(source);
+    }
+
+    /**
+     * Find field.
+     *
+     * @param clazz the clazz
+     * @param name  the name
+     * @param type  the type
+     * @return the field
+     */
+    public static Field findField(@NonNull Class<?> clazz, String name, Class<?> type) {
+        Class<?> searchType = clazz;
+        while (Object.class != searchType && searchType != null) {
+            Field[] fields = searchType.getDeclaredFields();
+            for (Field field : fields) {
+                if ((name == null || name.equals(field.getName())) && (type == null || type.equals(field.getType()))) {
+                    return field;
+                }
+            }
+            searchType = searchType.getSuperclass();
+        }
+        return null;
+    }
+
+    /**
+     * Is an ip address.
+     *
+     * @param input the input
+     * @return the true if is an ip address
+     */
+    public static boolean isAnIpAddress(@NonNull String input) {
+        try {
+            InetAddress address = InetAddress.getByName(input);
+            if (input.equals(address.getHostAddress())) {
+                return true;
+            }
+        } catch (UnknownHostException e) {
+            //ignore
+        }
+        return false;
+    }
+
+    /**
+     * Unwrap throwable.
+     *
+     * @param wrapped the wrapped
+     * @return the throwable
+     */
     public static Throwable unwrapThrowable(Throwable wrapped) {
         Throwable unwrapped = wrapped;
         while (true) {
@@ -38,6 +147,14 @@ public abstract class RSocketMicroConnectUtil {
         }
     }
 
+    /**
+     * Substrings between string [].
+     *
+     * @param str   the str
+     * @param open  the open
+     * @param close the close
+     * @return the string []
+     */
     public static String[] substringsBetween(final String str, final String open, final String close) {
         if (str == null || open.isEmpty() || close.isEmpty()) {
             return null;
@@ -107,6 +224,13 @@ public abstract class RSocketMicroConnectUtil {
         return inferredClass;
     }
 
+    /**
+     * Resolve return type.
+     *
+     * @param method  the method
+     * @param srcType the src type
+     * @return the type
+     */
     public static Type resolveReturnType(Method method, Type srcType) {
         Type returnType = method.getGenericReturnType();
         Class<?> declaringClass = method.getDeclaringClass();
@@ -269,6 +393,9 @@ public abstract class RSocketMicroConnectUtil {
         return result;
     }
 
+    /**
+     * The type Parameterized type.
+     */
     static class ParameterizedTypeImpl implements ParameterizedType {
         private final Class<?> rawType;
 
@@ -276,6 +403,13 @@ public abstract class RSocketMicroConnectUtil {
 
         private final Type[] actualTypeArguments;
 
+        /**
+         * Instantiates a new Parameterized type.
+         *
+         * @param rawType             the raw type
+         * @param ownerType           the owner type
+         * @param actualTypeArguments the actual type arguments
+         */
         public ParameterizedTypeImpl(Class<?> rawType, Type ownerType, Type[] actualTypeArguments) {
             this.rawType = rawType;
             this.ownerType = ownerType;
@@ -304,11 +438,20 @@ public abstract class RSocketMicroConnectUtil {
         }
     }
 
+    /**
+     * The type Wildcard type.
+     */
     static class WildcardTypeImpl implements WildcardType {
         private final Type[] lowerBounds;
 
         private final Type[] upperBounds;
 
+        /**
+         * Instantiates a new Wildcard type.
+         *
+         * @param lowerBounds the lower bounds
+         * @param upperBounds the upper bounds
+         */
         WildcardTypeImpl(Type[] lowerBounds, Type[] upperBounds) {
             this.lowerBounds = lowerBounds;
             this.upperBounds = upperBounds;
@@ -325,6 +468,9 @@ public abstract class RSocketMicroConnectUtil {
         }
     }
 
+    /**
+     * The type Generic array type.
+     */
     static class GenericArrayTypeImpl implements GenericArrayType {
         private final Type genericComponentType;
 

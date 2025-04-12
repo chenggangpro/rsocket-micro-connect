@@ -1,5 +1,7 @@
 package pro.chenggang.project.rsocket.micro.connect.core.interceptor;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.metadata.WellKnownMimeType;
@@ -16,6 +18,7 @@ import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutio
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutionBeforeInterceptorChain;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutionUnexpectedInterceptorChain;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RemoteRSocketInfo;
+import pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.util.context.Context;
@@ -23,6 +26,7 @@ import reactor.util.context.Context;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -47,10 +51,10 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
 
     private final WellKnownMimeType dataMimeType;
     private final WellKnownMimeType metadataMimeType;
-    private final RemoteRSocketInfo remoteRSocketInfo;
     private final RSocketExecutionBeforeInterceptorChain beforeChain;
     private final RSocketExecutionAfterInterceptorChain afterChain;
     private final RSocketExecutionUnexpectedInterceptorChain unexpectedChain;
+    private final Cache<RSocket, RemoteRSocketInfo> remoteRSocketInfoCache;
 
     protected ChainedInterceptedRSocket(RSocket source,
                                         WellKnownMimeType dataMimeType,
@@ -71,7 +75,18 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
         super(source);
         this.dataMimeType = dataMimeType;
         this.metadataMimeType = metadataMimeType;
-        this.remoteRSocketInfo = remoteRSocketInfo;
+        if (Objects.nonNull(remoteRSocketInfo)) {
+            this.remoteRSocketInfoCache = Caffeine.newBuilder()
+                    .initialCapacity(1)
+                    .weakKeys()
+                    .build();
+            this.remoteRSocketInfoCache.put(source, remoteRSocketInfo);
+        } else {
+            this.remoteRSocketInfoCache = Caffeine.newBuilder()
+                    .initialCapacity(3)
+                    .weakKeys()
+                    .build();
+        }
         this.beforeChain = new RSocketExecutionBeforeInterceptorChain(beforeInterceptors);
         this.afterChain = new RSocketExecutionAfterInterceptorChain(afterInterceptors);
         this.unexpectedChain = new RSocketExecutionUnexpectedInterceptorChain(unexpectedInterceptors);
@@ -198,7 +213,17 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
         return Mono.fromSupplier(() -> {
             final ConcurrentHashMap<String, Object> attributes = new ConcurrentHashMap<>();
             attributes.put(CLEANUP_ATTRIBUTE_KEY, new AtomicBoolean(false));
-            if (Objects.nonNull(this.remoteRSocketInfo)) {
+            RemoteRSocketInfo remoteRSocketInfo = this.remoteRSocketInfoCache.get(source,
+                    rsocket -> {
+                        Optional<RemoteRSocketInfo> optionalInfo = RSocketMicroConnectUtil.getRemoteRSocketInfo(source);
+                        if (optionalInfo.isEmpty()) {
+                            log.debug("Can not get remote rsocket info from RSocket instance :{}", source);
+                            return null;
+                        }
+                        return optionalInfo.get();
+                    }
+            );
+            if (Objects.nonNull(remoteRSocketInfo)) {
                 attributes.putIfAbsent(RemoteRSocketInfo.class.getName(), remoteRSocketInfo);
             }
             return attributes;
