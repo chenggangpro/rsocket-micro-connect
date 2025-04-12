@@ -107,7 +107,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                     return this.loadRSocketServiceInstance(transportURI);
                 })
                 .onErrorResume(Throwable.class, throwable -> {
-                    log.error("Exception occurred while getting LoadBalanceTarget from discover client", throwable);
+                    log.error("Exception occurred while loading LoadBalanceTarget from discover client", throwable);
                     return Mono.empty();
                 })
                 .subscribe();
@@ -246,7 +246,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                 if(RSocketInstanceNotFoundTransport.class.equals(firstTarget.getTransport().getClass())){
                     return Mono.just(false);
                 }
-                log.info("Clear load-balanced target for {} since there was no rsocket instance be found",
+                log.info("Clear load-balanced target for {} since there was no rsocket instance found",
                         transportURI
                 );
             }
