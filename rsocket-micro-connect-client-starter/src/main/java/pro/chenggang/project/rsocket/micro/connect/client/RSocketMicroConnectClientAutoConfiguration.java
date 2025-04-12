@@ -41,9 +41,9 @@ import pro.chenggang.project.rsocket.micro.connect.spring.client.CachedRSocketRe
 import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientLoggingRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
-import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DefaultRSocketLoadbalanceStrategies;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DefaultRSocketLoadBalanceStrategies;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DiscoverRSocketRequesterRegistry;
-import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.RSocketLoadbalanceStrategies;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.RSocketLoadBalanceStrategies;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.DefaultRSocketMicroConnectorRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorRegistry;
 
@@ -165,10 +165,10 @@ public class RSocketMicroConnectClientAutoConfiguration {
 
     @Bean
     @ConditionalOnBean(ReactiveDiscoveryClient.class)
-    @ConditionalOnMissingBean(RSocketLoadbalanceStrategies.class)
+    @ConditionalOnMissingBean(RSocketLoadBalanceStrategies.class)
     @ConditionalOnProperty(prefix = RSocketMicroConnectClientProperties.PREFIX, value = "enable-discover", havingValue = "true")
-    public RSocketLoadbalanceStrategies rSocketLoadbalanceStrategies() {
-        return new DefaultRSocketLoadbalanceStrategies();
+    public RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies() {
+        return new DefaultRSocketLoadBalanceStrategies();
     }
 
     @Bean
@@ -177,11 +177,11 @@ public class RSocketMicroConnectClientAutoConfiguration {
     @ConditionalOnProperty(prefix = RSocketMicroConnectClientProperties.PREFIX, value = "enable-discover", havingValue = "true")
     public RSocketRequesterRegistry discoverRSocketRequesterRegistry(RSocketRequester.Builder rSocketRequesterBuilder,
                                                                      ReactiveDiscoveryClient reactiveDiscoveryClient,
-                                                                     RSocketLoadbalanceStrategies rSocketLoadbalanceStrategies,
+                                                                     RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies,
                                                                      RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties) {
         return new DiscoverRSocketRequesterRegistry(rSocketRequesterBuilder,
                 reactiveDiscoveryClient,
-                rSocketLoadbalanceStrategies,
+                rSocketLoadBalanceStrategies,
                 rSocketMicroConnectClientProperties.getRefreshDiscoverInterval()
         );
     }

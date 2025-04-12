@@ -11,12 +11,12 @@ import lombok.NonNull;
  * @version 0.1.0
  * @since 0.1.0
  */
-public class DefaultRSocketLoadbalanceStrategies implements RSocketLoadbalanceStrategies {
+public class DefaultRSocketLoadBalanceStrategies implements RSocketLoadBalanceStrategies {
 
     private final LoadbalanceStrategy loadbalanceStrategy = new RoundRobinLoadbalanceStrategy();
 
     @Override
-    public LoadbalanceStrategy getLoadbalanceStrategy(@NonNull String rsocketHost) {
+    public LoadbalanceStrategy getLoadBalanceStrategy(@NonNull String rsocketHost) {
         return this.loadbalanceStrategy;
     }
 }

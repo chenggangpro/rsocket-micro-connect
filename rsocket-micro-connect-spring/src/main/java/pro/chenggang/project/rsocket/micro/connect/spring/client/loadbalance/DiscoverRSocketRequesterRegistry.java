@@ -52,16 +52,16 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
     private final Map<URI, RSocketServiceInstanceData> rSocketServiceInstanceDataCache = new ConcurrentHashMap<>();
     private final Map<URI, Disposable> rSocketServiceInstanceRefresherCache = new ConcurrentHashMap<>();
     private final ReactiveDiscoveryClient reactiveDiscoveryClient;
-    private final RSocketLoadbalanceStrategies rSocketLoadbalanceStrategies;
+    private final RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies;
     private final Duration refreshInterval;
 
     public DiscoverRSocketRequesterRegistry(Builder builder,
                                             ReactiveDiscoveryClient reactiveDiscoveryClient,
-                                            RSocketLoadbalanceStrategies rSocketLoadbalanceStrategies,
+                                            RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies,
                                             Duration refreshInterval) {
         super(builder);
         this.reactiveDiscoveryClient = reactiveDiscoveryClient;
-        this.rSocketLoadbalanceStrategies = rSocketLoadbalanceStrategies;
+        this.rSocketLoadBalanceStrategies = rSocketLoadBalanceStrategies;
         this.refreshInterval = refreshInterval;
     }
 
@@ -77,7 +77,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
         );
         rSocketServiceInstanceRefresherCache.computeIfAbsent(transportURI, this::newRSocketServiceInstanceRefresher);
         return builder.transports(rSocketServiceInstanceData.getInstances(),
-                rSocketLoadbalanceStrategies.getLoadbalanceStrategy(transportURI.getHost())
+                rSocketLoadBalanceStrategies.getLoadBalanceStrategy(transportURI.getHost())
         );
     }
 

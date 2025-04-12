@@ -10,7 +10,7 @@ import lombok.NonNull;
  * @version 0.1.0
  * @since 0.1.0
  */
-public interface RSocketLoadbalanceStrategies {
+public interface RSocketLoadBalanceStrategies {
 
     /**
      * Gets load-balance strategy.
@@ -18,5 +18,5 @@ public interface RSocketLoadbalanceStrategies {
      * @param rsocketHost the rsocket host
      * @return the load-balance strategy
      */
-    LoadbalanceStrategy getLoadbalanceStrategy(@NonNull String rsocketHost);
+    LoadbalanceStrategy getLoadBalanceStrategy(@NonNull String rsocketHost);
 }
