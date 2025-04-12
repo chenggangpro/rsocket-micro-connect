@@ -144,7 +144,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
 
     @Override
     public Mono<Void> metadataPush(Payload payload) {
-        return this.interceptMono(payload, METADATA_PUSH, super.metadataPush(payload));
+        return this.interceptMono(payload, METADATA_PUSH, Mono.defer(() -> super.metadataPush(payload)));
     }
 
     protected <T> Mono<T> interceptMono(Payload payload, RSocketExchangeType rSocketExchangeType, Mono<T> monoExecution) {
