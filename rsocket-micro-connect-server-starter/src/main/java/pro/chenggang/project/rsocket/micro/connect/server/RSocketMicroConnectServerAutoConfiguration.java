@@ -37,7 +37,7 @@ import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnex
 import pro.chenggang.project.rsocket.micro.connect.core.interceptor.SetupSocketAcceptorInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.EnhancedRSocketMessageHandler;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties;
-import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerSideLoggingRSocketExecutionInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.ServerLoggingRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpHeaderHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQueryHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQueryMapHandlerMethodArgumentResolver;
@@ -155,8 +155,8 @@ public class RSocketMicroConnectServerAutoConfiguration {
     }
 
     @Bean
-    public ServerSideLoggingRSocketExecutionInterceptor serverSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
-        return new ServerSideLoggingRSocketExecutionInterceptor(rSocketStrategies);
+    public ServerLoggingRSocketInterceptor serverSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
+        return new ServerLoggingRSocketInterceptor(rSocketStrategies);
     }
 
     @Bean

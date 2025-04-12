@@ -1,4 +1,4 @@
-package pro.chenggang.project.rsocket.micro.connect.spring.server;
+package pro.chenggang.project.rsocket.micro.connect.spring.client;
 
 import io.rsocket.Payload;
 import lombok.RequiredArgsConstructor;
@@ -24,11 +24,11 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 
-import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType.SERVER;
+import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType.CLIENT;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
 
 /**
- * The Server side logging rsocket execution interceptor.
+ * The Client side logging rsocket execution interceptor.
  *
  * @author Gang Cheng
  * @version 0.1.0
@@ -36,10 +36,10 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
  */
 @Slf4j
 @RequiredArgsConstructor
-public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor, RSocketExecutionUnexpectedInterceptor, Ordered {
+public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor, RSocketExecutionUnexpectedInterceptor, Ordered {
 
-    private final String EXECUTION_INSTANT_ATTR_KEY = ServerSideLoggingRSocketExecutionInterceptor.class.getName() + ".execution-instant";
-    private final String ROUTE_ATTR_KEY = ServerSideLoggingRSocketExecutionInterceptor.class.getName() + ".route";
+    private final String EXECUTION_INSTANT_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".execution-instant";
+    private final String ROUTE_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".route";
     private final RSocketStrategies strategies;
 
     @Override
@@ -57,24 +57,20 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
             Map<String, Object> extractedMetadata = strategies.metadataExtractor().extract(payload, metadataMimeType);
             String route = (String) extractedMetadata.get(MetadataExtractor.ROUTE_KEY);
             attributes.put(ROUTE_ATTR_KEY, route);
-            Optional<RemoteRSocketInfo> optionalRemoteRSocketInfo = exchange.getRemoteRSocketInfo();
-            if (optionalRemoteRSocketInfo.isPresent()) {
-                log.info("<== RSocket[{}]: {}, client: {}",
-                        rSocketExchangeType,
-                        route,
-                        optionalRemoteRSocketInfo.get().getInfo()
-                );
+            Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
+            if (optionalInfo.isPresent()) {
+                log.info("==> RSocket[{}]: {}", rSocketExchangeType, optionalInfo.get().getInfo(route));
             } else {
-                log.info("<== RSocket[{}]: {}", rSocketExchangeType, route);
+                log.info("==> RSocket[{}]: {}", rSocketExchangeType, route);
             }
             HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug("<== Http header: Key -> {}, Value -> ******", k);
+                        log.debug("==> Http header: Key -> {}, Value -> ******", k);
                         return;
                     }
-                    log.debug("<== Http header: Key -> {}, Value -> {}", k, v);
+                    log.debug("==> Http header: Key -> {}, Value -> {}", k, v);
                 });
             }
         }
@@ -89,14 +85,9 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
-            log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
-                    rSocketExchangeType,
-                    route,
-                    optionalInfo.get().getInfo(),
-                    costDuration
-            );
+            log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration);
         } else {
-            log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+            log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
         }
         return chain.next(exchange);
     }
@@ -111,31 +102,25 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
             if (optionalThrowable.isPresent()) {
-                log.error("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                log.error("<== RSocket[{}]: {}, Cost: {}",
                         rSocketExchangeType,
-                        route,
-                        optionalInfo.get().getInfo(),
+                        optionalInfo.get().getInfo(route),
                         costDuration,
                         optionalThrowable.get()
                 );
             } else {
-                log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
-                        rSocketExchangeType,
-                        route,
-                        optionalInfo.get().getInfo(),
-                        costDuration
-                );
+                log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration);
             }
         } else {
             if (optionalThrowable.isPresent()) {
-                log.error("==> RSocket[{}]: {}, Cost: {}",
+                log.error("<== RSocket[{}]: {}, Cost: {}",
                         rSocketExchangeType,
                         route,
                         costDuration,
                         optionalThrowable.get()
                 );
             } else {
-                log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+                log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
             }
         }
         return chain.next(exchange);
@@ -148,6 +133,6 @@ public class ServerSideLoggingRSocketExecutionInterceptor implements RSocketExec
 
     @Override
     public InterceptorType interceptorType() {
-        return SERVER;
+        return CLIENT;
     }
 }

@@ -38,7 +38,7 @@ import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInte
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.interceptor.ChainedRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.CachedRSocketRequesterRegistry;
-import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientSideLoggingRSocketExecutionInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientLoggingRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DefaultRSocketLoadbalanceStrategies;
@@ -127,8 +127,8 @@ public class RSocketMicroConnectClientAutoConfiguration {
     }
 
     @Bean
-    public ClientSideLoggingRSocketExecutionInterceptor clientSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
-        return new ClientSideLoggingRSocketExecutionInterceptor(rSocketStrategies);
+    public ClientLoggingRSocketInterceptor clientSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
+        return new ClientLoggingRSocketInterceptor(rSocketStrategies);
     }
 
     @Bean
