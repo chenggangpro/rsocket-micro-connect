@@ -115,12 +115,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
 
     private Disposable newRSocketServiceInstanceRefresher(URI transportURI) {
         return Flux.interval(Duration.ZERO, refreshInterval)
-                .flatMap(__ -> {
-                    if (!rSocketServiceInstanceDataCache.containsKey(transportURI)) {
-                        return Mono.error(new IllegalStateException("Can not found RSocketServiceInstanceData from cache"));
-                    }
-                    return this.loadRSocketServiceInstance(transportURI);
-                })
+                .flatMap(__ -> this.loadRSocketServiceInstance(transportURI))
                 .onErrorResume(Throwable.class, throwable -> {
                     log.error("Exception occurred while loading LoadBalanceTarget from discover client", throwable);
                     return Mono.empty();
@@ -129,6 +124,9 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
     }
 
     private Mono<Boolean> loadRSocketServiceInstance(URI transportURI) {
+        if (!rSocketServiceInstanceDataCache.containsKey(transportURI)) {
+            return Mono.error(new IllegalStateException("Can not found RSocketServiceInstanceData from cache"));
+        }
         return Mono.usingWhen(
                         Mono.fromSupplier(() -> rSocketServiceInstanceDataCache.get(transportURI))
                                 .switchIfEmpty(Mono.error(new IllegalStateException(
@@ -257,8 +255,8 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                 .allMatch(loadbalanceTarget -> newLoadBalancedTargetData.containsKey(loadbalanceTarget.getKey()));
         if (newLoadBalancedTargetData.isEmpty()) {
             if (!CollectionUtils.isEmpty(existsLoadBalanceTargetList)) {
-                LoadbalanceTarget firstTarget= existsLoadBalanceTargetList.get(0);
-                if(RSocketInstanceNotFoundTransport.class.equals(firstTarget.getTransport().getClass())){
+                LoadbalanceTarget firstTarget = existsLoadBalanceTargetList.get(0);
+                if (RSocketInstanceNotFoundTransport.class.equals(firstTarget.getTransport().getClass())) {
                     return Mono.just(false);
                 }
                 log.info("Clear load-balanced target for {} since there was no rsocket instance found",
