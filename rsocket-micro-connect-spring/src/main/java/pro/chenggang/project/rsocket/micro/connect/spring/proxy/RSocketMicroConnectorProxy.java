@@ -28,6 +28,7 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil.unwrapThrowable;
 
@@ -73,23 +74,20 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
         lookupConstructor = lookup;
     }
 
+    private final Class<T> connectorInterface;
     private final RSocketRequesterRegistry rSocketRequesterRegistry;
-    private final Class<T> serviceInterface;
-    private final Map<Method, MicroConnectorMethodInvoker> methodCache;
+    private final Map<Method, MicroConnectorMethodInvoker> connectorMethodCache = new ConcurrentHashMap<>();
 
     /**
      * Instantiates a new rsocket service proxy.
      *
      * @param rSocketRequesterRegistry the rsocket requester registry
-     * @param serviceInterface         the service interface
-     * @param methodCache              the method cache
+     * @param connectorInterface       the service interface
      */
-    public RSocketMicroConnectorProxy(RSocketRequesterRegistry rSocketRequesterRegistry,
-                                      Class<T> serviceInterface,
-                                      Map<Method, MicroConnectorMethodInvoker> methodCache) {
+    public RSocketMicroConnectorProxy(Class<T> connectorInterface,
+                                      RSocketRequesterRegistry rSocketRequesterRegistry) {
+        this.connectorInterface = connectorInterface;
         this.rSocketRequesterRegistry = rSocketRequesterRegistry;
-        this.serviceInterface = serviceInterface;
-        this.methodCache = methodCache;
     }
 
     @Override
@@ -106,7 +104,7 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
 
     private MicroConnectorMethodInvoker cachedInvoker(Method method) throws Throwable {
         try {
-            return methodCache.computeIfAbsent(method, m -> {
+            return connectorMethodCache.computeIfAbsent(method, m -> {
                 if (m.isDefault()) {
                     try {
                         if (privateLookupInMethod == null) {
@@ -118,7 +116,7 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
                         throw new RuntimeException(e);
                     }
                 } else {
-                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(serviceInterface, method));
+                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(connectorInterface, method));
                 }
             });
         } catch (RuntimeException re) {
@@ -158,7 +156,10 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
          * @return the object
          * @throws Throwable the throwable
          */
-        Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable;
+        Object invoke(Object proxy,
+                      Method method,
+                      Object[] args,
+                      RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable;
     }
 
     private static class PlainMicroConnectorMethodInvoker implements MicroConnectorMethodInvoker {
@@ -175,7 +176,10 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
+        public Object invoke(Object proxy,
+                             Method method,
+                             Object[] args,
+                             RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
             return rSocketMicroConnectorMethod.execute(rSocketRequesterRegistry, args);
         }
     }
@@ -194,7 +198,10 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
         }
 
         @Override
-        public Object invoke(Object proxy, Method method, Object[] args, RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
+        public Object invoke(Object proxy,
+                             Method method,
+                             Object[] args,
+                             RSocketRequesterRegistry rSocketRequesterRegistry) throws Throwable {
             return methodHandle.bindTo(proxy).invokeWithArguments(args);
         }
     }

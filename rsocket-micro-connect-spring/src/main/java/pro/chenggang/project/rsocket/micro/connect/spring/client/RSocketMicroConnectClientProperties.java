@@ -20,6 +20,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.Duration;
+import java.util.List;
 
 /**
  * The RSocket micro connect server properties.
@@ -38,9 +39,15 @@ public class RSocketMicroConnectClientProperties {
     public static final String PREFIX = "rsocket-micro-connect.client";
 
     /**
-     * Whether enable discover.
+     * The Enable discover.
      */
     public boolean enableDiscover = false;
+
+    /**
+     * The Micro connector package.
+     * If there are other packages need to be scanned, this should be configured
+     */
+    public List<String> microConnectorPackage;
 
     /**
      * The Refresh discover interval.

@@ -17,12 +17,8 @@ package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
 import lombok.NonNull;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
-import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorProxy.MicroConnectorMethodInvoker;
 
-import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The rsocket micro connector proxy factory.
@@ -32,8 +28,10 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class RSocketMicroConnectorProxyFactory<T> {
 
+    /**
+     * The connector interface
+     */
     private final Class<T> connectorInterface;
-    private final Map<Method, MicroConnectorMethodInvoker> connectorMethodCache = new ConcurrentHashMap<>();
 
     /**
      * Instantiates a new rsocket micro connector proxy factory.
@@ -54,24 +52,14 @@ public class RSocketMicroConnectorProxyFactory<T> {
     }
 
     /**
-     * Gets connector method cache.
-     *
-     * @return the connector method cache
-     */
-    public Map<Method, MicroConnectorMethodInvoker> getConnectorMethodCache() {
-        return connectorMethodCache;
-    }
-
-    /**
      * New rsocket micro connector proxy instance.
      *
      * @param rSocketRequesterRegistry the rsocket requester registry
      * @return the rsocket micro connector proxy instance
      */
     public T newInstance(@NonNull RSocketRequesterRegistry rSocketRequesterRegistry) {
-        final RSocketMicroConnectorProxy<T> serviceProxy = new RSocketMicroConnectorProxy<>(rSocketRequesterRegistry,
-                connectorInterface,
-                connectorMethodCache
+        final RSocketMicroConnectorProxy<T> serviceProxy = new RSocketMicroConnectorProxy<>(connectorInterface,
+                rSocketRequesterRegistry
         );
         return newInstance(serviceProxy);
     }

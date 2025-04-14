@@ -74,18 +74,18 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             attributes.put(ROUTE_ATTR_KEY, route);
             Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
             if (optionalInfo.isPresent()) {
-                log.info("==> RSocket[{}]: {}", rSocketExchangeType, optionalInfo.get().getInfo(route));
+                log.info(" ==> RSocket[{}]: {}", rSocketExchangeType, optionalInfo.get().getInfo(route));
             } else {
-                log.info("==> RSocket[{}]: {}", rSocketExchangeType, route);
+                log.info(" ==> RSocket[{}]: {}", rSocketExchangeType, route);
             }
             HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug("==> Http header: Key -> {}, Value -> ******", k);
+                        log.debug(" ==> Http header: Key -> {}, Value -> ******", k);
                         return;
                     }
-                    log.debug("==> Http header: Key -> {}, Value -> {}", k, v);
+                    log.debug(" ==> Http header: Key -> {}, Value -> {}", k, v);
                 });
             }
         }
@@ -100,9 +100,9 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
-            log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration);
+            log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration.toMillis());
         } else {
-            log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+            log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
         }
         return chain.next(exchange);
     }
@@ -117,25 +117,25 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
             if (optionalThrowable.isPresent()) {
-                log.error("<== RSocket[{}]: {}, Cost: {}",
+                log.error("<== RSocket[{}]: {}, Cost: {} ms",
                         rSocketExchangeType,
                         optionalInfo.get().getInfo(route),
                         costDuration,
                         optionalThrowable.get()
                 );
             } else {
-                log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration);
+                log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration.toMillis());
             }
         } else {
             if (optionalThrowable.isPresent()) {
-                log.error("<== RSocket[{}]: {}, Cost: {}",
+                log.error("<== RSocket[{}]: {}, Cost: {} ms",
                         rSocketExchangeType,
                         route,
                         costDuration,
                         optionalThrowable.get()
                 );
             } else {
-                log.info("<== RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+                log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
             }
         }
         return chain.next(exchange);

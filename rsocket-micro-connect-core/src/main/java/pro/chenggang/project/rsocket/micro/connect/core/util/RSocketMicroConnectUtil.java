@@ -52,6 +52,16 @@ import java.util.Optional;
 @Slf4j
 public abstract class RSocketMicroConnectUtil {
 
+    private static ClassLoader systemClassLoader;
+
+    static {
+        try {
+            systemClassLoader = ClassLoader.getSystemClassLoader();
+        } catch (SecurityException ignored) {
+            // AccessControlException on Google App Engine
+        }
+    }
+
     /**
      * Gets remote rsocket info.
      *
@@ -237,6 +247,37 @@ public abstract class RSocketMicroConnectUtil {
             inferredClass = (Class<?>) genericType;
         }
         return inferredClass;
+    }
+
+    /**
+     * Class for name class.
+     *
+     * @param name         the class name
+     * @param classLoaders the class loaders
+     * @return the class
+     * @throws ClassNotFoundException the class not found exception
+     */
+    public static Class<?> classForName(String name, ClassLoader[] classLoaders) throws ClassNotFoundException {
+        for (ClassLoader cl : classLoaders) {
+            if (null != cl) {
+                try {
+                    return Class.forName(name, true, cl);
+                } catch (ClassNotFoundException e) {
+                    // ignore
+                }
+            }
+        }
+        throw new ClassNotFoundException("Cannot find class: " + name);
+    }
+
+    /**
+     * Get class loaders.
+     *
+     * @param classLoader the class loader
+     * @return the class loaders
+     */
+    public static ClassLoader[] getClassLoaders(ClassLoader classLoader) {
+        return new ClassLoader[]{classLoader, Thread.currentThread().getContextClassLoader(), RSocketMicroConnectUtil.class.getClassLoader(), systemClassLoader};
     }
 
     /**

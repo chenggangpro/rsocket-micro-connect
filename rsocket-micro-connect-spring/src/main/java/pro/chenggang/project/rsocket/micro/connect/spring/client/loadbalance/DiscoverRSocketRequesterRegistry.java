@@ -194,7 +194,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                     if (Objects.nonNull(metadata) && !metadata.isEmpty()) {
                         String discoverEnableRSocket = metadata.get(DISCOVER_ENABLE_RSOCKET_METADATA_KEY);
                         if ("false".equalsIgnoreCase(discoverEnableRSocket)) {
-                            log.debug("Disabled rsocket service {} from metadata: {}",
+                            log.debug("Disabled rsocket server {} from metadata: {}",
                                     serviceInstance.getUri(),
                                     DISCOVER_ENABLE_RSOCKET_METADATA_KEY
                             );
@@ -207,7 +207,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                                 port = Integer.parseInt(rsocketServerPortFromMetadata);
                             } catch (NumberFormatException e) {
                                 log.debug(
-                                        "Failed to parse custom rsocket service port {} from metadata: {}",
+                                        "Failed to parse custom rsocket server port {} from metadata: {}",
                                         rsocketServerPortFromMetadata,
                                         DISCOVER_RSOCKET_PORT_METADATA_KEY
                                 );
@@ -259,7 +259,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                 if (RSocketInstanceNotFoundTransport.class.equals(firstTarget.getTransport().getClass())) {
                     return Mono.just(false);
                 }
-                log.info("Clear load-balanced target for {} since there was no rsocket instance found",
+                log.info("Clear load-balanced target for {} since there was no rsocket server instance found",
                         transportURI
                 );
             }
@@ -270,13 +270,13 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                     ));
         }
         if (allMatch && newLoadBalancedTargetData.size() == existsLoadBalanceTargetList.size()) {
-            log.trace("Refresh load-balanced target for {}, rsocket target list didn't change: {}",
+            log.trace("Refresh load-balanced target for {}, rsocket server instance list didn't change: {}",
                     transportURI,
                     newLoadBalancedTargetData.size()
             );
             return Mono.just(false);
         }
-        log.info("Load load-balanced target for {}, new rsocket service instance size: {}",
+        log.info("Load load-balanced target for {}, rsocket server instance's total size: {}",
                 transportURI,
                 newLoadBalancedTargetData.size()
         );
@@ -291,7 +291,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
 
         RSocketInstanceNotFoundTransport(URI transportURI) {
             this.transportURI = transportURI;
-            log.warn("No available rsocket service was found for {}", transportURI);
+            log.warn("No available rsocket server instance was found for {}", transportURI);
         }
 
         @Override

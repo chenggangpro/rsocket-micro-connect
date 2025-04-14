@@ -74,22 +74,22 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             attributes.put(ROUTE_ATTR_KEY, route);
             Optional<RemoteRSocketInfo> optionalRemoteRSocketInfo = exchange.getRemoteRSocketInfo();
             if (optionalRemoteRSocketInfo.isPresent()) {
-                log.info("<== RSocket[{}]: {}, client: {}",
+                log.info(" <== RSocket[{}]: {}, client: {}",
                         rSocketExchangeType,
                         route,
                         optionalRemoteRSocketInfo.get().getInfo()
                 );
             } else {
-                log.info("<== RSocket[{}]: {}", rSocketExchangeType, route);
+                log.info(" <== RSocket[{}]: {}", rSocketExchangeType, route);
             }
             HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug("<== Http header: Key -> {}, Value -> ******", k);
+                        log.debug(" <== Http header: Key -> {}, Value -> ******", k);
                         return;
                     }
-                    log.debug("<== Http header: Key -> {}, Value -> {}", k, v);
+                    log.debug(" <== Http header: Key -> {}, Value -> {}", k, v);
                 });
             }
         }
@@ -104,14 +104,14 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
-            log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
+            log.info("==> RSocket[{}]: {}, client: {}, Cost: {} ms",
                     rSocketExchangeType,
                     route,
                     optionalInfo.get().getInfo(),
                     costDuration
             );
         } else {
-            log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+            log.info("==> RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
         }
         return chain.next(exchange);
     }
@@ -126,7 +126,7 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
             if (optionalThrowable.isPresent()) {
-                log.error("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                log.error("==> RSocket[{}]: {}, client: {}, Cost: {} ms",
                         rSocketExchangeType,
                         route,
                         optionalInfo.get().getInfo(),
@@ -134,7 +134,7 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
                         optionalThrowable.get()
                 );
             } else {
-                log.info("==> RSocket[{}]: {}, client: {}, Cost: {}",
+                log.info("==> RSocket[{}]: {}, client: {}, Cost: {} ms",
                         rSocketExchangeType,
                         route,
                         optionalInfo.get().getInfo(),
@@ -143,14 +143,14 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             }
         } else {
             if (optionalThrowable.isPresent()) {
-                log.error("==> RSocket[{}]: {}, Cost: {}",
+                log.error("==> RSocket[{}]: {}, Cost: {} ms",
                         rSocketExchangeType,
                         route,
                         costDuration,
                         optionalThrowable.get()
                 );
             } else {
-                log.info("==> RSocket[{}]: {}, Cost: {}", rSocketExchangeType, route, costDuration);
+                log.info("==> RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
             }
         }
         return chain.next(exchange);
