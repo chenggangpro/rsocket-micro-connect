@@ -40,7 +40,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType.CLIENT;
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_METADATA_KEY;
 
 /**
  * The Client side logging rsocket execution interceptor.
@@ -78,14 +78,14 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             } else {
                 log.info(" ==> RSocket[{}]: {}", rSocketExchangeType, route);
             }
-            HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(HTTP_HEADER_METADATA_KEY);
+            HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(CONNECTOR_HEADER_METADATA_KEY);
             if (Objects.nonNull(httpHeaders)) {
                 httpHeaders.forEach((k, v) -> {
                     if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug(" ==> Http header: Key -> {}, Value -> ******", k);
+                        log.debug(" ==> Connector header: Key -> {}, Value -> ******", k);
                         return;
                     }
-                    log.debug(" ==> Http header: Key -> {}, Value -> {}", k, v);
+                    log.debug(" ==> Connector header: Key -> {}, Value -> {}", k, v);
                 });
             }
         }
@@ -120,7 +120,7 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
                 log.error("<== RSocket[{}]: {}, Cost: {} ms",
                         rSocketExchangeType,
                         optionalInfo.get().getInfo(route),
-                        costDuration,
+                        costDuration.toMillis(),
                         optionalThrowable.get()
                 );
             } else {
@@ -131,7 +131,7 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
                 log.error("<== RSocket[{}]: {}, Cost: {} ms",
                         rSocketExchangeType,
                         route,
-                        costDuration,
+                        costDuration.toMillis(),
                         optionalThrowable.get()
                 );
             } else {

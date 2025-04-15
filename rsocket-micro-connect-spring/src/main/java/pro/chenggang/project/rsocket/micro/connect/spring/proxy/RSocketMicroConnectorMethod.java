@@ -56,8 +56,8 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil.resolveReturnType;
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_HEADER_MEDIA_TYPE;
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_MEDIA_TYPE;
 
 /**
  * The RSocket Micro Connect Method.
@@ -171,13 +171,13 @@ public class RSocketMicroConnectorMethod {
         MultiValueMap<String, String> headers = connectorExecution.getHeaders();
         if (!headers.isEmpty()) {
             requestSpec.metadata(metadataSpec -> {
-                metadataSpec.metadata(headers, MimeTypeUtils.parseMimeType(HTTP_HEADER_MEDIA_TYPE.toString()));
+                metadataSpec.metadata(headers, MimeTypeUtils.parseMimeType(CONNECTOR_HEADER_MEDIA_TYPE.toString()));
             });
         }
         MultiValueMap<String, String> queryParams = connectorExecution.getQueryParams();
         if (!queryParams.isEmpty()) {
             requestSpec.metadata(metadataSpec -> {
-                metadataSpec.metadata(queryParams, MimeTypeUtils.parseMimeType(HTTP_QUERY_MEDIA_TYPE.toString()));
+                metadataSpec.metadata(queryParams, MimeTypeUtils.parseMimeType(CONNECTOR_QUERY_MEDIA_TYPE.toString()));
             });
         }
         Object bodyData = connectorExecution.getBodyData();
@@ -329,7 +329,7 @@ public class RSocketMicroConnectorMethod {
         }
         Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
         Parameter[] parameters = methodSignature.getParameters();
-        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         for (int i = 0; i < parameterAnnotations.length; i++) {
             Annotation[] annotations = parameterAnnotations[i];
             for (Annotation annotation : annotations) {
@@ -349,9 +349,10 @@ public class RSocketMicroConnectorMethod {
                                 }
                                 for (Object item : v) {
                                     if (!(item instanceof String)) {
-                                        return;
+                                        headers.add((String) k, String.valueOf(item));
+                                    } else {
+                                        headers.add((String) k, (String) item);
                                     }
-                                    headers.add((String) k, (String) item);
                                 }
                             });
                         }
@@ -369,7 +370,7 @@ public class RSocketMicroConnectorMethod {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
+        final MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
         Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
         Parameter[] parameters = methodSignature.getParameters();
         for (int i = 0; i < parameterAnnotations.length; i++) {

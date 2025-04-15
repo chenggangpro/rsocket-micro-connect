@@ -20,9 +20,11 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.springframework.util.Assert;
+import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,11 +37,13 @@ import java.util.Objects;
  * @version 0.1.0
  * @since 0.1.0
  */
-@Getter
-public class ConnectorExecution {
+public final class ConnectorExecution {
 
+    @Getter
     private final ConnectorExecutionMetadata connectorExecutionMetadata;
+    @Getter
     private String route;
+    @Getter
     private Object bodyData;
     private final Map<String, String> pathVariables = new HashMap<>();
     private final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
@@ -80,6 +84,33 @@ public class ConnectorExecution {
                 connectorExecution.getHeaders(),
                 connectorExecution.getQueryParams()
         );
+    }
+
+    /**
+     * Gets path variables.
+     *
+     * @return the unmodifiable path variables
+     */
+    public Map<String, String> getPathVariables() {
+        return Collections.unmodifiableMap(this.pathVariables);
+    }
+
+    /**
+     * Gets headers.
+     *
+     * @return the unmodifiable headers
+     */
+    public MultiValueMap<String, String> getHeaders() {
+        return CollectionUtils.unmodifiableMultiValueMap(headers);
+    }
+
+    /**
+     * Gets query params.
+     *
+     * @return the unmodifiable query params
+     */
+    public MultiValueMap<String, String> getQueryParams() {
+        return CollectionUtils.unmodifiableMultiValueMap(queryParams);
     }
 
     /**
@@ -144,6 +175,17 @@ public class ConnectorExecution {
     }
 
     /**
+     * Remove path variable.
+     *
+     * @param pathVariableName the path variable name can not be null
+     * @return the connector execution
+     */
+    public ConnectorExecution removePathVariable(@NonNull String pathVariableName) {
+        this.pathVariables.remove(pathVariableName);
+        return this;
+    }
+
+    /**
      * Add header.
      *
      * @param key   the header key can not be null
@@ -196,6 +238,17 @@ public class ConnectorExecution {
     }
 
     /**
+     * Remove header.
+     *
+     * @param headerName the header name can not be null
+     * @return the connector execution
+     */
+    public ConnectorExecution removeHeader(@NonNull String headerName) {
+        this.headers.remove(headerName);
+        return this;
+    }
+
+    /**
      * Configure query param.
      *
      * @param key   the key can not be null
@@ -244,6 +297,17 @@ public class ConnectorExecution {
         Assert.notEmpty(queryParams, () -> "New headers can not be empty");
         this.queryParams.clear();
         this.queryParams.putAll(queryParams);
+        return this;
+    }
+
+    /**
+     * Remove query params.
+     *
+     * @param queryName the query name can not be null
+     * @return the connector execution
+     */
+    public ConnectorExecution removeQueryParams(@NonNull String queryName) {
+        this.queryParams.remove(queryName);
         return this;
     }
 

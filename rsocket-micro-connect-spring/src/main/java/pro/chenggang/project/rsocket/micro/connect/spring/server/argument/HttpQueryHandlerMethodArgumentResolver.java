@@ -30,7 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.util.List;
 import java.util.Objects;
 
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_METADATA_KEY;
 
 /**
  * Http query handler method argument resolver
@@ -62,7 +62,7 @@ public class HttpQueryHandlerMethodArgumentResolver extends AbstractNamedValueMe
     @Override
     protected Object resolveArgumentInternal(MethodParameter parameter, Message<?> message, String name) {
         MessageHeaders headers = message.getHeaders();
-        MultiValueMap<String, String> vars = (MultiValueMap<String, String>) headers.get(HTTP_QUERY_METADATA_KEY);
+        MultiValueMap<String, String> vars = (MultiValueMap<String, String>) headers.get(CONNECTOR_QUERY_METADATA_KEY);
         if (Objects.isNull(vars)) {
             return null;
         }

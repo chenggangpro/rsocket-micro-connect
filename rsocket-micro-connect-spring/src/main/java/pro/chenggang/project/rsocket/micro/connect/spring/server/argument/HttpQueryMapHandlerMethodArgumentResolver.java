@@ -30,7 +30,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.HTTP_QUERY_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_METADATA_KEY;
 
 /**
  * Http query to Map handler method argument resolver
@@ -51,7 +51,7 @@ public class HttpQueryMapHandlerMethodArgumentResolver implements HandlerMethodA
 
     @Override
     public Mono<Object> resolveArgument(MethodParameter parameter, Message<?> message) {
-        Object httpQueries = message.getHeaders().get(HTTP_QUERY_METADATA_KEY);
+        Object httpQueries = message.getHeaders().get(CONNECTOR_QUERY_METADATA_KEY);
         if (parameter.hasParameterAnnotation(Nullable.class) && Objects.isNull(httpQueries)) {
             return Mono.empty();
         }
