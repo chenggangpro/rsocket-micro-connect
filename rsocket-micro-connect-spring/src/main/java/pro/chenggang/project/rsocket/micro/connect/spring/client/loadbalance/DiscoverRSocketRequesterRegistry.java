@@ -55,7 +55,7 @@ import static reactor.core.publisher.Sinks.EmitResult.FAIL_NON_SERIALIZED;
 
 /**
  * The discover rsocket requester registry for spring cloud.
- * This get a rsocket requester with load-balancing service from a discovery like eureka or nacos
+ * This get a rsocket requester with load-balancing connector from a discovery like eureka or nacos
  *
  * @author Gang Cheng
  * @version 0.1.0

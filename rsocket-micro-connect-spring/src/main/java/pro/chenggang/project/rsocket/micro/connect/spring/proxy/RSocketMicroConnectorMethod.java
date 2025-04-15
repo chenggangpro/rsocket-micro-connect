@@ -25,6 +25,7 @@ import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.rsocket.RSocketRequester;
 import org.springframework.messaging.rsocket.RSocketRequester.RequestSpec;
+import org.springframework.util.Assert;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MimeTypeUtils;
 import org.springframework.util.MultiValueMap;
@@ -37,6 +38,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil;
 import pro.chenggang.project.rsocket.micro.connect.spring.annotation.RSocketMicroConnector;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
+import pro.chenggang.project.rsocket.micro.connect.spring.proxy.ConnectorExecution.ConnectorExecutionBuilder;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -46,7 +48,9 @@ import java.lang.reflect.Parameter;
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.net.URI;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
@@ -64,11 +68,19 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 public class RSocketMicroConnectorMethod {
 
     private final MethodSignature methodSignature;
-    private final ConnectorMethodData connectorMethodData;
+    private final ConnectorData connectorData;
+    private final List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers;
 
-    public RSocketMicroConnectorMethod(Class<?> connectorInterface, Method method) {
+    public RSocketMicroConnectorMethod(Class<?> connectorInterface,
+                                       Method method,
+                                       List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers) {
         this.methodSignature = new MethodSignature(connectorInterface, method);
-        this.connectorMethodData = new ConnectorMethodData(connectorInterface, method);
+        this.connectorData = new ConnectorData(connectorInterface, method);
+        if (Objects.isNull(executionCustomizers) || executionCustomizers.isEmpty()) {
+            this.executionCustomizers = Collections.emptyList();
+        } else {
+            this.executionCustomizers = executionCustomizers;
+        }
     }
 
     /**
@@ -79,7 +91,7 @@ public class RSocketMicroConnectorMethod {
      * @return the result value
      */
     public Object execute(RSocketRequesterRegistry rSocketRequesterRegistry, Object[] args) {
-        RSocketRequester rSocketRequester = rSocketRequesterRegistry.getRSocketRequester(connectorMethodData.getTransportURI());
+        RSocketRequester rSocketRequester = rSocketRequesterRegistry.getRSocketRequester(connectorData.getTransportURI());
         if (this.methodSignature.returnsVoid) {
             if (this.methodSignature.returnsMany) {
                 return Flux.from(this.executeFireAndForget(rSocketRequester, args));
@@ -100,9 +112,8 @@ public class RSocketMicroConnectorMethod {
      * @return {@code Publisher<Void>}
      */
     private Publisher<Void> executeFireAndForget(RSocketRequester rSocketRequester, Object[] args) {
-        RequestSpec requestSpec = this.newRequestSpec(rSocketRequester, args);
-        this.resolveMetadataIfPresent(requestSpec, args);
-        this.resolveBodyIfPresent(requestSpec, args);
+        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
+        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
         return requestSpec.send();
     }
 
@@ -114,9 +125,8 @@ public class RSocketMicroConnectorMethod {
      * @return {@code Flux<R>}
      */
     private <R> Flux<R> executeRequestStream(RSocketRequester rSocketRequester, Object[] args) {
-        RequestSpec requestSpec = this.newRequestSpec(rSocketRequester, args);
-        this.resolveMetadataIfPresent(requestSpec, args);
-        this.resolveBodyIfPresent(requestSpec, args);
+        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
+        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
         return requestSpec.retrieveFlux(new ParameterizedTypeReference<>() {
             @Override
             public Type getType() {
@@ -133,9 +143,8 @@ public class RSocketMicroConnectorMethod {
      * @return {@code Mono<R>}
      */
     private <R> Mono<R> executeRequestResponse(RSocketRequester rSocketRequester, Object[] args) {
-        RequestSpec requestSpec = this.newRequestSpec(rSocketRequester, args);
-        this.resolveMetadataIfPresent(requestSpec, args);
-        this.resolveBodyIfPresent(requestSpec, args);
+        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
+        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
         return requestSpec.retrieveMono(new ParameterizedTypeReference<>() {
             @Override
             public Type getType() {
@@ -144,17 +153,104 @@ public class RSocketMicroConnectorMethod {
         });
     }
 
-    private RSocketRequester.RequestSpec newRequestSpec(RSocketRequester rSocketRequester, Object[] args) {
-        String route = this.connectorMethodData.getRoute();
-        if (Objects.isNull(args) || args.length == 0) {
-            return rSocketRequester.route(route);
+    /**
+     * Resolve connector execution to RSocketRequester.RequestSpec
+     *
+     * @param rSocketRequester   the rsocket requester
+     * @param connectorExecution the connector execution
+     * @return the RSocketRequester.RequestSpec
+     */
+    private RSocketRequester.RequestSpec resolveRequestSpec(RSocketRequester rSocketRequester,
+                                                            ConnectorExecution connectorExecution) {
+        for (RSocketMicroConnectorExecutionCustomizer executionCustomizer : executionCustomizers) {
+            executionCustomizer.customize(connectorExecution);
         }
+        RequestSpec requestSpec = getPathVariables(connectorExecution)
+                .map(pathVariables -> rSocketRequester.route(connectorExecution.getRoute(), pathVariables))
+                .orElseGet(() -> rSocketRequester.route(connectorExecution.getRoute()));
+        MultiValueMap<String, String> headers = connectorExecution.getHeaders();
+        if (!headers.isEmpty()) {
+            requestSpec.metadata(metadataSpec -> {
+                metadataSpec.metadata(headers, MimeTypeUtils.parseMimeType(HTTP_HEADER_MEDIA_TYPE.toString()));
+            });
+        }
+        MultiValueMap<String, String> queryParams = connectorExecution.getQueryParams();
+        if (!queryParams.isEmpty()) {
+            requestSpec.metadata(metadataSpec -> {
+                metadataSpec.metadata(queryParams, MimeTypeUtils.parseMimeType(HTTP_QUERY_MEDIA_TYPE.toString()));
+            });
+        }
+        Object bodyData = connectorExecution.getBodyData();
+        if (Objects.nonNull(bodyData)) {
+            requestSpec.data(bodyData);
+        }
+        return requestSpec;
+    }
+
+    /**
+     * Gets path variables from connector execution
+     *
+     * @param connectorExecution the connector execution
+     * @return the optional path variable
+     */
+    private Optional<Object[]> getPathVariables(ConnectorExecution connectorExecution) {
+        String route = connectorExecution.getRoute();
         String[] pathVariableNames = RSocketMicroConnectUtil.substringsBetween(route, "{", "}");
         if (Objects.isNull(pathVariableNames) || pathVariableNames.length == 0) {
-            return rSocketRequester.route(route);
+            log.debug("Prepare path variables, no path variable placeholder like {...} in route {}", route);
+            return Optional.empty();
         }
-        Annotation[][] parameterAnnotations = connectorMethodData.getParameterAnnotations();
-        Map<String, Integer> pathVariables = new HashMap<>();
+        Map<String, String> pathVariables = connectorExecution.getPathVariables();
+        if (pathVariables.isEmpty()) {
+            log.debug("Prepare path variables, no path variables found in connect execution");
+            return Optional.empty();
+        }
+        Object[] pathVariableValues = new Object[pathVariableNames.length];
+        for (int i = 0; i < pathVariableNames.length; i++) {
+            String pathVariableName = pathVariableNames[i];
+            String pathVariableValue = pathVariables.get(pathVariableName);
+            Assert.notNull(pathVariableValue, () -> "Path variable " + pathVariableName + " can not be null");
+            pathVariableValues[i] = pathVariableValue;
+        }
+        return Optional.of(pathVariableValues);
+    }
+
+    /**
+     * Init connection execution
+     *
+     * @param args the method execution args
+     * @return the connector execution
+     */
+    private ConnectorExecution initConnectionExecution(Object[] args) {
+        ConnectorExecutionMetadata connectorExecutionMetadata = ConnectorExecutionMetadata.builder()
+                .originalRoute(this.connectorData.getOriginalRoute())
+                .parameters(this.methodSignature.getParameters())
+                .parameterAnnotations(this.methodSignature.getParameterAnnotations())
+                .connectorInterface(this.methodSignature.getConnectorInterface())
+                .connectorMethod(this.methodSignature.connectorMethod)
+                .args(args)
+                .build();
+        ConnectorExecutionBuilder connectorExecutionBuilder = ConnectorExecution.builder()
+                .connectorExecutionMetadata(connectorExecutionMetadata)
+                .route(this.connectorData.getOriginalRoute());
+        this.resolvePathVariables(args).ifPresent(connectorExecutionBuilder::pathVariables);
+        this.resolveBody(args).ifPresent(connectorExecutionBuilder::bodyData);
+        this.resolveHeaderValues(args).ifPresent(connectorExecutionBuilder::headers);
+        this.resolveQueryParams(args).ifPresent(connectorExecutionBuilder::queryParams);
+        return connectorExecutionBuilder.build();
+    }
+
+    private Optional<Map<String, String>> resolvePathVariables(Object[] args) {
+        String originalRoute = this.connectorData.getOriginalRoute();
+        if (Objects.isNull(args) || args.length == 0) {
+            return Optional.empty();
+        }
+        String[] pathVariableNames = RSocketMicroConnectUtil.substringsBetween(originalRoute, "{", "}");
+        if (Objects.isNull(pathVariableNames) || pathVariableNames.length == 0) {
+            return Optional.empty();
+        }
+        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
+        Map<String, String> pathVariables = new HashMap<>();
         for (int i = 0; i < parameterAnnotations.length; i++) {
             Annotation[] annotations = parameterAnnotations[i];
             for (Annotation annotation : annotations) {
@@ -162,29 +258,25 @@ public class RSocketMicroConnectorMethod {
                         || PathVariable.class.equals(annotation.annotationType())) {
                     String pathValiableName = (String) AnnotationUtils.getValue(annotation);
                     if (!StringUtils.hasText(pathValiableName)) {
-                        Parameter parameter = connectorMethodData.getParameters()[i];
+                        Parameter parameter = methodSignature.getParameters()[i];
                         pathValiableName = parameter.getName();
                     }
-                    pathVariables.put(pathValiableName, i);
+                    Object arg = args[i];
+                    if (Objects.nonNull(arg)) {
+                        pathVariables.put(pathValiableName, arg.toString());
+                    }
                     break;
                 }
             }
         }
-        Object[] pathVariableValues = new Object[pathVariableNames.length];
-        for (int i = 0; i < pathVariableNames.length; i++) {
-            String pathVariableName = pathVariableNames[i];
-            Integer index = pathVariables.get(pathVariableName);
-            Object variableValue = args[index];
-            pathVariableValues[i] = variableValue;
-        }
-        return rSocketRequester.route(route, pathVariableValues);
+        return Optional.of(pathVariables);
     }
 
-    private void resolveBodyIfPresent(RSocketRequester.RequestSpec requestSpec, Object[] args) {
+    private Optional<Object> resolveBody(Object[] args) {
         if (Objects.isNull(args) || args.length == 0) {
-            return;
+            return Optional.empty();
         }
-        Annotation[][] parameterAnnotations = connectorMethodData.getParameterAnnotations();
+        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
         for (int i = 0; i < parameterAnnotations.length; i++) {
             Annotation[] annotations = parameterAnnotations[i];
             boolean isRequestBodyAnnotationMatched = false;
@@ -204,8 +296,7 @@ public class RSocketMicroConnectorMethod {
                 // The first @RequestBoyd arg
                 Object argValue = args[i];
                 if (Objects.nonNull(argValue)) {
-                    requestSpec.data(argValue);
-                    return;
+                    return Optional.of(argValue);
                 }
             }
         }
@@ -225,37 +316,20 @@ public class RSocketMicroConnectorMethod {
                 // The first no resolved annotation arg
                 Object argValue = args[i];
                 if (Objects.nonNull(argValue)) {
-                    requestSpec.data(argValue);
-                    return;
+                    return Optional.of(argValue);
                 }
             }
         }
+        return Optional.empty();
     }
 
-    private void resolveMetadataIfPresent(RSocketRequester.RequestSpec requestSpec, Object[] args) {
-        if (Objects.isNull(args) || args.length == 0) {
-            return;
-        }
-        this.resolveHttpHeaderValue(args)
-                .ifPresent(httpHeaders -> {
-                    requestSpec.metadata(metadataSpec -> {
-                        metadataSpec.metadata(httpHeaders, MimeTypeUtils.parseMimeType(HTTP_HEADER_MEDIA_TYPE.toString()));
-                    });
-                });
-        this.resolveQueryParamsValue(args)
-                .ifPresent(queryParams -> {
-                    requestSpec.metadata(metadataSpec -> {
-                        metadataSpec.metadata(queryParams, MimeTypeUtils.parseMimeType(HTTP_QUERY_MEDIA_TYPE.toString()));
-                    });
-                });
-    }
-
-    private Optional<HttpHeaders> resolveHttpHeaderValue(Object[] args) {
+    private Optional<MultiValueMap<String, String>> resolveHeaderValues(Object[] args) {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        Annotation[][] parameterAnnotations = connectorMethodData.getParameterAnnotations();
-        Parameter[] parameters = connectorMethodData.getParameters();
+        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
+        Parameter[] parameters = methodSignature.getParameters();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
         for (int i = 0; i < parameterAnnotations.length; i++) {
             Annotation[] annotations = parameterAnnotations[i];
             for (Annotation annotation : annotations) {
@@ -264,22 +338,40 @@ public class RSocketMicroConnectorMethod {
                     if (Objects.nonNull(argValue)) {
                         Class<?> parameterType = parameters[i].getType();
                         if (HttpHeaders.class.equals(parameterType)) {
-                            return Optional.of((HttpHeaders) argValue);
+                            headers.addAll((HttpHeaders) argValue);
+                            continue;
+                        }
+                        if (MultiValueMap.class.isAssignableFrom(parameterType)) {
+                            MultiValueMap<?, ?> multiValueMap = (MultiValueMap<?, ?>) argValue;
+                            multiValueMap.forEach((k, v) -> {
+                                if (!(k instanceof String)) {
+                                    return;
+                                }
+                                for (Object item : v) {
+                                    if (!(item instanceof String)) {
+                                        return;
+                                    }
+                                    headers.add((String) k, (String) item);
+                                }
+                            });
                         }
                     }
                 }
             }
         }
-        return Optional.empty();
+        if (headers.isEmpty()) {
+            return Optional.empty();
+        }
+        return Optional.of(headers);
     }
 
-    private Optional<MultiValueMap<String, String>> resolveQueryParamsValue(Object[] args) {
+    private Optional<MultiValueMap<String, String>> resolveQueryParams(Object[] args) {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
         MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
-        Annotation[][] parameterAnnotations = connectorMethodData.getParameterAnnotations();
-        Parameter[] parameters = connectorMethodData.getParameters();
+        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
+        Parameter[] parameters = methodSignature.getParameters();
         for (int i = 0; i < parameterAnnotations.length; i++) {
             Annotation[] annotations = parameterAnnotations[i];
             for (Annotation annotation : annotations) {
@@ -306,8 +398,10 @@ public class RSocketMicroConnectorMethod {
      * The Method signature.
      */
     @Getter
-    public static class MethodSignature {
+    static class MethodSignature {
 
+        private final Class<?> connectorInterface;
+        private final Method connectorMethod;
         private final boolean returnsMany;
         private final boolean returnsVoid;
         private final Type returnType;
@@ -315,11 +409,18 @@ public class RSocketMicroConnectorMethod {
         /**
          * Instantiates a new Method signature.
          *
-         * @param serviceInterface the mapper interface
-         * @param method           the method
+         * @param connectorInterface the connector interface
+         * @param connectorMethod    the connector method
          */
-        public MethodSignature(Class<?> serviceInterface, Method method) {
-            Class<?> methodReturnType = method.getReturnType();
+        MethodSignature(Class<?> connectorInterface, Method connectorMethod) {
+            RSocketMicroConnector rSocketMicroConnector = connectorInterface.getAnnotation(RSocketMicroConnector.class);
+            if (Objects.isNull(rSocketMicroConnector)) {
+                throw new IllegalArgumentException(
+                        "RSocket micro connector interface should be annotated with a @RSocketMicroConnector annotation");
+            }
+            this.connectorInterface = connectorInterface;
+            this.connectorMethod = connectorMethod;
+            Class<?> methodReturnType = connectorMethod.getReturnType();
             if (void.class.equals(methodReturnType)) {
                 throw new UnsupportedOperationException(
                         "Return type is void should be changed to Mono<Void> or Flux<Void>");
@@ -327,7 +428,7 @@ public class RSocketMicroConnectorMethod {
             if (!Mono.class.equals(methodReturnType) && !Flux.class.equals(methodReturnType)) {
                 throw new UnsupportedOperationException("Return type should by either Mono or Flux");
             }
-            Type resolvedReturnType = resolveReturnType(method, serviceInterface);
+            Type resolvedReturnType = resolveReturnType(connectorMethod, connectorInterface);
             if (resolvedReturnType instanceof ParameterizedType parameterizedType) {
                 this.returnType = parameterizedType.getActualTypeArguments()[0];
             } else {
@@ -336,18 +437,33 @@ public class RSocketMicroConnectorMethod {
             this.returnsVoid = Void.class.equals(this.returnType);
             this.returnsMany = Flux.class.equals(methodReturnType);
         }
+
+        /**
+         * Get parameter annotations from connector method.
+         *
+         * @return the annotation[][]
+         */
+        Annotation[][] getParameterAnnotations() {
+            return connectorMethod.getParameterAnnotations();
+        }
+
+        /**
+         * Get parameters from connector method.
+         *
+         * @return the parameter[]
+         */
+        Parameter[] getParameters() {
+            return connectorMethod.getParameters();
+        }
     }
 
     @Getter
-    public static class ConnectorMethodData {
+    static class ConnectorData {
 
         private final URI transportURI;
-        private final String name;
-        private final String route;
-        private final Annotation[][] parameterAnnotations;
-        private final Parameter[] parameters;
+        private final String originalRoute;
 
-        public ConnectorMethodData(Class<?> connectorInterface, Method method) {
+        ConnectorData(Class<?> connectorInterface, Method connectorMethod) {
             RSocketMicroConnector rSocketMicroConnector = connectorInterface.getAnnotation(RSocketMicroConnector.class);
             if (Objects.isNull(rSocketMicroConnector)) {
                 throw new IllegalArgumentException(
@@ -368,16 +484,13 @@ public class RSocketMicroConnectorMethod {
                 throw new IllegalArgumentException("RSocket transport port can not be negative or zero");
             }
             this.transportURI = transportURI;
-            this.name = method.getName();
-            this.route = extractRoute(method);
-            this.parameterAnnotations = method.getParameterAnnotations();
-            this.parameters = method.getParameters();
+            this.originalRoute = extractRoute(connectorMethod);
         }
 
         /**
-         * extract route
+         * To extract route
          *
-         * @param method the service method
+         * @param method the connector method
          * @return the route value
          */
         private String extractRoute(Method method) {

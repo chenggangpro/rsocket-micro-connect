@@ -15,9 +15,11 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
+import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,16 +35,20 @@ public class DefaultRSocketMicroConnectorRegistry implements RSocketMicroConnect
 
     private final RSocketRequesterRegistry rSocketRequesterRegistry;
     private final Map<Class<?>, RSocketMicroConnectorProxyFactory<?>> connectorProxyFactoryCache = new ConcurrentHashMap<>();
+    private final List<RSocketMicroConnectorExecutionCustomizer> rSocketMicroConnectorExecutionCustomizers;
 
     @SuppressWarnings("unchecked")
     @Override
-    public <T> T getRSocketConnectorInstance(Class<T> type) {
+    public <T> T getRSocketConnectorInstance(@NonNull Class<T> type) {
         if (!type.isInterface()) {
             throw new IllegalArgumentException("Type " + type + " should be an interface");
         }
         RSocketMicroConnectorProxyFactory<?> rSocketMicroConnectorProxyFactory = connectorProxyFactoryCache.computeIfAbsent(type,
-                RSocketMicroConnectorProxyFactory::new
+                connectorInterface -> new RSocketMicroConnectorProxyFactory<>(connectorInterface,
+                        rSocketMicroConnectorExecutionCustomizers
+                )
         );
         return (T) rSocketMicroConnectorProxyFactory.newInstance(rSocketRequesterRegistry);
     }
+
 }

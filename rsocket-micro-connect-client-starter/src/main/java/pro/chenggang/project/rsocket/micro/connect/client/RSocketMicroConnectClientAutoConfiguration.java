@@ -60,6 +60,7 @@ import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.Def
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DiscoverRSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.RSocketLoadBalanceStrategies;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.DefaultRSocketMicroConnectorRegistry;
+import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorExecutionCustomizer;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorRegistry;
 
 import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
@@ -203,7 +204,10 @@ public class RSocketMicroConnectClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(RSocketMicroConnectorRegistry.class)
-    public RSocketMicroConnectorRegistry rSocketMicroConnectorRegistry(RSocketRequesterRegistry rSocketRequesterRegistry) {
-        return new DefaultRSocketMicroConnectorRegistry(rSocketRequesterRegistry);
+    public RSocketMicroConnectorRegistry rSocketMicroConnectorRegistry(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                                                       ObjectProvider<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers) {
+        return new DefaultRSocketMicroConnectorRegistry(rSocketRequesterRegistry,
+                connectorExecutionCustomizers.orderedStream().toList()
+        );
     }
 }

@@ -27,6 +27,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -76,18 +77,22 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
 
     private final Class<T> connectorInterface;
     private final RSocketRequesterRegistry rSocketRequesterRegistry;
+    private final List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers;
     private final Map<Method, MicroConnectorMethodInvoker> connectorMethodCache = new ConcurrentHashMap<>();
 
     /**
-     * Instantiates a new rsocket service proxy.
+     * Instantiates a new rsocket connector proxy.
      *
-     * @param rSocketRequesterRegistry the rsocket requester registry
-     * @param connectorInterface       the service interface
+     * @param connectorInterface            the connector interface
+     * @param rSocketRequesterRegistry      the rsocket requester registry
+     * @param connectorExecutionCustomizers the connector execution customizer list
      */
     public RSocketMicroConnectorProxy(Class<T> connectorInterface,
-                                      RSocketRequesterRegistry rSocketRequesterRegistry) {
+                                      RSocketRequesterRegistry rSocketRequesterRegistry,
+                                      List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers) {
         this.connectorInterface = connectorInterface;
         this.rSocketRequesterRegistry = rSocketRequesterRegistry;
+        this.connectorExecutionCustomizers = connectorExecutionCustomizers;
     }
 
     @Override
@@ -116,7 +121,10 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
                         throw new RuntimeException(e);
                     }
                 } else {
-                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(connectorInterface, method));
+                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(connectorInterface,
+                            method,
+                            connectorExecutionCustomizers
+                    ));
                 }
             });
         } catch (RuntimeException re) {
@@ -147,7 +155,7 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
     interface MicroConnectorMethodInvoker {
 
         /**
-         * Invoke service method.
+         * Invoke connector method.
          *
          * @param proxy                    the proxy
          * @param method                   the method
@@ -169,7 +177,7 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
         /**
          * Instantiates a new Plain connector method invoker.
          *
-         * @param rSocketMicroConnectorMethod the rsocket service method
+         * @param rSocketMicroConnectorMethod the rsocket connector method
          */
         public PlainMicroConnectorMethodInvoker(RSocketMicroConnectorMethod rSocketMicroConnectorMethod) {
             this.rSocketMicroConnectorMethod = rSocketMicroConnectorMethod;

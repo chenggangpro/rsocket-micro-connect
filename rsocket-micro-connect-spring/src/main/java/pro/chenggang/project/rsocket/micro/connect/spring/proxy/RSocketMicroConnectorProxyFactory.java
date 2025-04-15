@@ -15,10 +15,12 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
+import lombok.Getter;
 import lombok.NonNull;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 
 import java.lang.reflect.Proxy;
+import java.util.List;
 
 /**
  * The rsocket micro connector proxy factory.
@@ -26,6 +28,7 @@ import java.lang.reflect.Proxy;
  * @param <T> the type parameter
  * @author Gang Cheng
  */
+@Getter
 public class RSocketMicroConnectorProxyFactory<T> {
 
     /**
@@ -34,21 +37,20 @@ public class RSocketMicroConnectorProxyFactory<T> {
     private final Class<T> connectorInterface;
 
     /**
-     * Instantiates a new rsocket micro connector proxy factory.
-     *
-     * @param connectorInterface the rsocket micro connector interface
+     * Connector execution customizer list
      */
-    public RSocketMicroConnectorProxyFactory(Class<T> connectorInterface) {
-        this.connectorInterface = connectorInterface;
-    }
+    private final List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers;
 
     /**
-     * Gets rsocket micro connector interface.
+     * Instantiates a new rsocket micro connector proxy factory.
      *
-     * @return the rsocket micro connector interface
+     * @param connectorInterface            the rsocket micro connector interface
+     * @param connectorExecutionCustomizers the connector execution customizer list
      */
-    public Class<T> getConnectorInterface() {
-        return connectorInterface;
+    public RSocketMicroConnectorProxyFactory(Class<T> connectorInterface,
+                                             List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers) {
+        this.connectorInterface = connectorInterface;
+        this.connectorExecutionCustomizers = connectorExecutionCustomizers;
     }
 
     /**
@@ -59,7 +61,8 @@ public class RSocketMicroConnectorProxyFactory<T> {
      */
     public T newInstance(@NonNull RSocketRequesterRegistry rSocketRequesterRegistry) {
         final RSocketMicroConnectorProxy<T> serviceProxy = new RSocketMicroConnectorProxy<>(connectorInterface,
-                rSocketRequesterRegistry
+                rSocketRequesterRegistry,
+                connectorExecutionCustomizers
         );
         return newInstance(serviceProxy);
     }
