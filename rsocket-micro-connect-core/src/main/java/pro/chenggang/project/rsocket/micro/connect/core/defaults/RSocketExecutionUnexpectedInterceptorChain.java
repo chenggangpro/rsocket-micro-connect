@@ -35,19 +35,10 @@ import java.util.Objects;
 @Slf4j
 public class RSocketExecutionUnexpectedInterceptorChain implements RSocketInterceptorChain {
 
-    private final boolean isEmpty;
     private final RSocketExecutionUnexpectedInterceptor currentInterceptor;
     private final RSocketExecutionUnexpectedInterceptorChain next;
 
     public RSocketExecutionUnexpectedInterceptorChain(List<RSocketExecutionUnexpectedInterceptor> interceptors) {
-        if (Objects.isNull(interceptors) || interceptors.isEmpty()) {
-            log.debug("RSocket execution unexpected interceptors is empty");
-            this.isEmpty = true;
-            this.currentInterceptor = null;
-            this.next = null;
-            return;
-        }
-        this.isEmpty = false;
         RSocketExecutionUnexpectedInterceptorChain interceptor = init(interceptors);
         this.currentInterceptor = interceptor.currentInterceptor;
         this.next = interceptor.next;
@@ -55,30 +46,25 @@ public class RSocketExecutionUnexpectedInterceptorChain implements RSocketInterc
 
     private RSocketExecutionUnexpectedInterceptorChain init(List<RSocketExecutionUnexpectedInterceptor> interceptors) {
         RSocketExecutionUnexpectedInterceptorChain interceptor = new RSocketExecutionUnexpectedInterceptorChain(null, null);
-        ListIterator<? extends RSocketExecutionUnexpectedInterceptor> iterator = interceptors.listIterator(interceptors.size());
-        while (iterator.hasPrevious()) {
-            interceptor = new RSocketExecutionUnexpectedInterceptorChain(iterator.previous(), interceptor);
+        if (Objects.nonNull(interceptors) && !interceptors.isEmpty()) {
+            ListIterator<? extends RSocketExecutionUnexpectedInterceptor> iterator = interceptors.listIterator(interceptors.size());
+            while (iterator.hasPrevious()) {
+                interceptor = new RSocketExecutionUnexpectedInterceptorChain(iterator.previous(), interceptor);
+            }
+        } else {
+            log.debug("RSocket execution unexpected interceptors is empty");
         }
         return interceptor;
     }
 
     private RSocketExecutionUnexpectedInterceptorChain(RSocketExecutionUnexpectedInterceptor currentInterceptor,
                                                        RSocketExecutionUnexpectedInterceptorChain next) {
-        this.isEmpty = false;
         this.currentInterceptor = currentInterceptor;
         this.next = next;
     }
 
     @Override
-    public boolean isEmpty() {
-        return this.isEmpty;
-    }
-
-    @Override
     public Mono<Void> next(RSocketExchange exchange) {
-        if (this.isEmpty) {
-            return Mono.empty();
-        }
         return Mono.defer(() -> {
             if (shouldIntercept()) {
                 return this.currentInterceptor.interceptUnexpected(exchange, this.next);
@@ -87,13 +73,12 @@ public class RSocketExecutionUnexpectedInterceptorChain implements RSocketInterc
         });
     }
 
-
     private boolean shouldIntercept() {
         return this.currentInterceptor != null && this.next != null;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[isEmpty=" + this.isEmpty + ",currentInterceptor=" + this.currentInterceptor + "]";
+        return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";
     }
 }

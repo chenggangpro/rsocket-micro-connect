@@ -197,12 +197,10 @@ public class RSocketMicroConnectorMethod {
         String route = connectorExecution.getRoute();
         String[] pathVariableNames = RSocketMicroConnectUtil.substringsBetween(route, "{", "}");
         if (Objects.isNull(pathVariableNames) || pathVariableNames.length == 0) {
-            log.debug("Prepare path variables, no path variable placeholder like {...} in route {}", route);
             return Optional.empty();
         }
         Map<String, String> pathVariables = connectorExecution.getPathVariables();
         if (pathVariables.isEmpty()) {
-            log.debug("Prepare path variables, no path variables found in connect execution");
             return Optional.empty();
         }
         Object[] pathVariableValues = new Object[pathVariableNames.length];
@@ -268,6 +266,9 @@ public class RSocketMicroConnectorMethod {
                     break;
                 }
             }
+        }
+        if (pathVariables.isEmpty()) {
+            return Optional.empty();
         }
         return Optional.of(pathVariables);
     }
@@ -423,8 +424,7 @@ public class RSocketMicroConnectorMethod {
             this.connectorMethod = connectorMethod;
             Class<?> methodReturnType = connectorMethod.getReturnType();
             if (void.class.equals(methodReturnType)) {
-                throw new UnsupportedOperationException(
-                        "Return type is void should be changed to Mono<Void> or Flux<Void>");
+                throw new UnsupportedOperationException("Return type is void should be changed to Mono<Void> or Flux<Void>");
             }
             if (!Mono.class.equals(methodReturnType) && !Flux.class.equals(methodReturnType)) {
                 throw new UnsupportedOperationException("Return type should by either Mono or Flux");

@@ -35,19 +35,10 @@ import java.util.Objects;
 @Slf4j
 public class RSocketExecutionAfterInterceptorChain implements RSocketInterceptorChain {
 
-    private final boolean isEmpty;
     private final RSocketExecutionAfterInterceptor currentInterceptor;
     private final RSocketExecutionAfterInterceptorChain next;
 
     public RSocketExecutionAfterInterceptorChain(List<RSocketExecutionAfterInterceptor> interceptors) {
-        if (Objects.isNull(interceptors) || interceptors.isEmpty()) {
-            log.debug("RSocket execution after interceptors is empty");
-            this.isEmpty = true;
-            this.currentInterceptor = null;
-            this.next = null;
-            return;
-        }
-        this.isEmpty = false;
         RSocketExecutionAfterInterceptorChain interceptor = init(interceptors);
         this.currentInterceptor = interceptor.currentInterceptor;
         this.next = interceptor.next;
@@ -55,30 +46,25 @@ public class RSocketExecutionAfterInterceptorChain implements RSocketInterceptor
 
     private RSocketExecutionAfterInterceptorChain init(List<RSocketExecutionAfterInterceptor> interceptors) {
         RSocketExecutionAfterInterceptorChain interceptor = new RSocketExecutionAfterInterceptorChain(null, null);
-        ListIterator<? extends RSocketExecutionAfterInterceptor> iterator = interceptors.listIterator(0);
-        while (iterator.hasNext()) {
-            interceptor = new RSocketExecutionAfterInterceptorChain(iterator.next(), interceptor);
+        if (Objects.nonNull(interceptors) && !interceptors.isEmpty()) {
+            ListIterator<? extends RSocketExecutionAfterInterceptor> iterator = interceptors.listIterator(0);
+            while (iterator.hasNext()) {
+                interceptor = new RSocketExecutionAfterInterceptorChain(iterator.next(), interceptor);
+            }
+        } else {
+            log.debug("RSocket execution after interceptors is empty");
         }
         return interceptor;
     }
 
     private RSocketExecutionAfterInterceptorChain(RSocketExecutionAfterInterceptor currentInterceptor,
                                                   RSocketExecutionAfterInterceptorChain next) {
-        this.isEmpty = false;
         this.currentInterceptor = currentInterceptor;
         this.next = next;
     }
 
     @Override
-    public boolean isEmpty() {
-        return this.isEmpty;
-    }
-
-    @Override
     public Mono<Void> next(RSocketExchange exchange) {
-        if (this.isEmpty) {
-            return Mono.empty();
-        }
         return Mono.defer(() -> {
             if (shouldIntercept()) {
                 return this.currentInterceptor.interceptAfter(exchange, this.next);
@@ -87,13 +73,12 @@ public class RSocketExecutionAfterInterceptorChain implements RSocketInterceptor
         });
     }
 
-
     private boolean shouldIntercept() {
         return this.currentInterceptor != null && this.next != null;
     }
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + "[isEmpty=" + this.isEmpty + ",currentInterceptor=" + this.currentInterceptor + "]";
+        return getClass().getSimpleName() + "[currentInterceptor=" + this.currentInterceptor + "]";
     }
 }

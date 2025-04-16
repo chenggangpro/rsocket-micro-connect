@@ -131,7 +131,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                     initializeAttributes(),
                                     attributes -> {
                                         return Mono.just(this.beforeChain)
-                                                .filter(chain -> !chain.isEmpty())
                                                 .flatMapMany(chain -> {
                                                     return Flux.from(payloads)
                                                             .concatMap(payload -> {
@@ -170,7 +169,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                     initializeAttributes(),
                                     attributes -> {
                                         return Mono.just(this.beforeChain)
-                                                .filter(chain -> !chain.isEmpty())
                                                 .flatMap(chain -> {
                                                     return Mono.defer(() -> {
                                                         DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
@@ -201,7 +199,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                     initializeAttributes(),
                                     attributes -> {
                                         return Mono.just(this.beforeChain)
-                                                .filter(chain -> !chain.isEmpty())
                                                 .flatMap(chain -> {
                                                     return Mono.defer(() -> {
                                                         DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
@@ -246,9 +243,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     }
 
     private Mono<Void> invokeOnComplete(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes) {
-        if (afterChain.isEmpty()) {
-            return this.cleanupAttributes(attributes);
-        }
         return this.checkCleanupAttribute(attributes, true)
                 .filter(Boolean::booleanValue)
                 .flatMap(__ -> {
@@ -265,9 +259,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     private Mono<Void> invokeOnError(RSocketExchangeType rSocketExchangeType,
                                      Map<String, Object> attributes,
                                      Throwable err) {
-        if (unexpectedChain.isEmpty()) {
-            return this.cleanupAttributes(attributes);
-        }
         return this.checkCleanupAttribute(attributes, true)
                 .filter(Boolean::booleanValue)
                 .flatMap(__ -> {
@@ -283,9 +274,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     }
 
     private Mono<?> invokeOnCancel(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes) {
-        if (unexpectedChain.isEmpty()) {
-            return this.cleanupAttributes(attributes);
-        }
         return this.checkCleanupAttribute(attributes, false)
                 .filter(Boolean::booleanValue)
                 .flatMap(__ -> {

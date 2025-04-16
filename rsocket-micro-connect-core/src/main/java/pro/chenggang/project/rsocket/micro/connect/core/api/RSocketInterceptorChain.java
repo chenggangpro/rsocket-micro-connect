@@ -27,13 +27,6 @@ import reactor.core.publisher.Mono;
 public interface RSocketInterceptorChain {
 
     /**
-     * Is this chain empty.
-     *
-     * @return true if this chain is empty
-     */
-    boolean isEmpty();
-
-    /**
      * Delegate to the next {@code RSocketExchangeInterceptor} in the chain.
      *
      * @param exchange the current rsocket exchange
