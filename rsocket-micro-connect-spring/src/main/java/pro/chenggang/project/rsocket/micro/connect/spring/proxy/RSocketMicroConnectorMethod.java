@@ -90,67 +90,92 @@ public class RSocketMicroConnectorMethod {
      * @param args                     the args
      * @return the result value
      */
-    public Object execute(RSocketRequesterRegistry rSocketRequesterRegistry, Object[] args) {
-        RSocketRequester rSocketRequester = rSocketRequesterRegistry.getRSocketRequester(connectorData.getTransportURI());
+    public Publisher<?> execute(RSocketRequesterRegistry rSocketRequesterRegistry, Object[] args) {
+        final ConnectorExecution connectorExecution = this.initConnectionExecution(args);
         if (this.methodSignature.returnsVoid) {
-            if (this.methodSignature.returnsMany) {
-                return Flux.from(this.executeFireAndForget(rSocketRequester, args));
-            }
-            return Mono.from(this.executeFireAndForget(rSocketRequester, args));
+            return this.executeFireAndForget(rSocketRequesterRegistry, connectorExecution);
         }
         if (this.methodSignature.returnsMany) {
-            return this.executeRequestStream(rSocketRequester, args);
+            return this.executeRequestStreamOrChannel(rSocketRequesterRegistry, connectorExecution);
         }
-        return this.executeRequestResponse(rSocketRequester, args);
+        return this.executeRequestResponse(rSocketRequesterRegistry, connectorExecution);
     }
 
     /**
      * Execute fire-and-forget by rsocket
      *
-     * @param rSocketRequester the rsocket requester
-     * @param args             the ars
+     * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param connectorExecution       the connector execution
      * @return {@code Publisher<Void>}
      */
-    private Publisher<Void> executeFireAndForget(RSocketRequester rSocketRequester, Object[] args) {
-        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
-        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
-        return requestSpec.send();
+    private Publisher<Void> executeFireAndForget(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                                 ConnectorExecution connectorExecution) {
+        Mono<Void> fireAndForgetMono = this.resolveRequestSpec(rSocketRequesterRegistry, connectorExecution)
+                .flatMap(RequestSpec::send);
+        if (this.methodSignature.returnsMany) {
+            return Flux.from(fireAndForgetMono);
+        }
+        return fireAndForgetMono;
     }
 
     /**
      * Execute request-stream by rsocket
      *
-     * @param rSocketRequester the rsocket requester
-     * @param args             the args
+     * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param connectorExecution       the connector execution
      * @return {@code Flux<R>}
      */
-    private <R> Flux<R> executeRequestStream(RSocketRequester rSocketRequester, Object[] args) {
-        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
-        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
-        return requestSpec.retrieveFlux(new ParameterizedTypeReference<>() {
-            @Override
-            public Type getType() {
-                return methodSignature.getReturnType();
-            }
-        });
+    private <R> Flux<R> executeRequestStreamOrChannel(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                                      ConnectorExecution connectorExecution) {
+        return this.resolveRequestSpec(rSocketRequesterRegistry, connectorExecution)
+                .flatMapMany(requestSpec -> {
+                    return requestSpec.retrieveFlux(new ParameterizedTypeReference<>() {
+                        @Override
+                        public Type getType() {
+                            return methodSignature.getReturnType();
+                        }
+                    });
+                });
     }
 
     /**
      * Execute request-response by rsocket
      *
-     * @param rSocketRequester the rsocket requester
-     * @param args             the args
+     * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param connectorExecution       the connector execution
      * @return {@code Mono<R>}
      */
-    private <R> Mono<R> executeRequestResponse(RSocketRequester rSocketRequester, Object[] args) {
-        ConnectorExecution connectorExecution = this.initConnectionExecution(args);
-        RequestSpec requestSpec = this.resolveRequestSpec(rSocketRequester, connectorExecution);
-        return requestSpec.retrieveMono(new ParameterizedTypeReference<>() {
-            @Override
-            public Type getType() {
-                return methodSignature.getReturnType();
-            }
-        });
+    private <R> Mono<R> executeRequestResponse(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                               ConnectorExecution connectorExecution) {
+        return this.resolveRequestSpec(rSocketRequesterRegistry, connectorExecution)
+                .flatMap(requestSpec -> {
+                    return requestSpec.retrieveMono(new ParameterizedTypeReference<>() {
+                        @Override
+                        public Type getType() {
+                            return methodSignature.getReturnType();
+                        }
+                    });
+                });
+    }
+
+    /**
+     * Resolve request spec
+     *
+     * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param connectorExecution       the connector execution
+     * @return the prepared request spec
+     */
+    private Mono<RequestSpec> resolveRequestSpec(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                                 ConnectorExecution connectorExecution) {
+        return Mono.just(connectorExecution)
+                .flatMap(execution -> Flux.fromIterable(executionCustomizers)
+                        .concatMap(executionCustomizer -> executionCustomizer.customize(execution))
+                        .then(Mono.defer(() -> Mono.just(execution)))
+                )
+                .flatMap(execution -> Mono.fromCallable(() -> {
+                    RSocketRequester rSocketRequester = rSocketRequesterRegistry.getRSocketRequester(connectorData.getTransportURI());
+                    return this.resolveRequestSpec(rSocketRequester, execution);
+                }));
     }
 
     /**
@@ -162,9 +187,6 @@ public class RSocketMicroConnectorMethod {
      */
     private RSocketRequester.RequestSpec resolveRequestSpec(RSocketRequester rSocketRequester,
                                                             ConnectorExecution connectorExecution) {
-        for (RSocketMicroConnectorExecutionCustomizer executionCustomizer : executionCustomizers) {
-            executionCustomizer.customize(connectorExecution);
-        }
         RequestSpec requestSpec = getPathVariables(connectorExecution)
                 .map(pathVariables -> rSocketRequester.route(connectorExecution.getRoute(), pathVariables))
                 .orElseGet(() -> rSocketRequester.route(connectorExecution.getRoute()));

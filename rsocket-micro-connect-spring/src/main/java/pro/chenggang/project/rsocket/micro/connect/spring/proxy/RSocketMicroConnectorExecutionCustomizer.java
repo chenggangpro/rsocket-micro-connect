@@ -15,6 +15,8 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
+import reactor.core.publisher.Mono;
+
 /**
  * The rsocket micro connector execution customizer.
  *
@@ -28,6 +30,7 @@ public interface RSocketMicroConnectorExecutionCustomizer {
      * Connector execution customize.
      *
      * @param connectorExecution the connector execution
+     * @return {@code Mono<Void>} stand for customization finished
      */
-    void customize(ConnectorExecution connectorExecution);
+    Mono<Void> customize(ConnectorExecution connectorExecution);
 }
