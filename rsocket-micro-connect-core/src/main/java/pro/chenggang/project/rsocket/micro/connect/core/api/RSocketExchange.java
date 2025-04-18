@@ -22,6 +22,7 @@ import reactor.util.annotation.NonNull;
 import reactor.util.annotation.Nullable;
 
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
@@ -63,7 +64,11 @@ public interface RSocketExchange {
      * @return the data mime type
      */
     default <T> T getDataMimeType(@NonNull Function<String, T> mimeTypeConverter) {
-        return mimeTypeConverter.apply(getDataMimeType().toString());
+        WellKnownMimeType dataMimeType = getDataMimeType();
+        if (Objects.isNull(dataMimeType)) {
+            return mimeTypeConverter.apply(null);
+        }
+        return mimeTypeConverter.apply(dataMimeType.toString());
     }
 
     /**
@@ -81,7 +86,11 @@ public interface RSocketExchange {
      * @return the metadata mime type
      */
     default <T> T getMetadataMimeType(@NonNull Function<String, T> mimeTypeConverter) {
-        return mimeTypeConverter.apply(getMetadataMimeType().toString());
+        WellKnownMimeType metadataMimeType = getMetadataMimeType();
+        if (Objects.isNull(metadataMimeType)) {
+            return mimeTypeConverter.apply(null);
+        }
+        return mimeTypeConverter.apply(metadataMimeType.toString());
     }
 
     /**
