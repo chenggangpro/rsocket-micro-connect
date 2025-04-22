@@ -57,7 +57,11 @@ import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQu
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.HttpQueryMapHandlerMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.PathVariableMethodArgumentResolver;
 import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.RequestBodyMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.RequestPartNameMethodArgumentResolver;
+import pro.chenggang.project.rsocket.micro.connect.spring.server.argument.RequestPartPayloadMethodArgumentResolver;
 
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_MEDIA_TYPE;
@@ -86,6 +90,18 @@ public class RSocketMicroConnectServerAutoConfiguration {
         PathPatternParser pathPatternParser = new PathPatternParser();
         pathPatternParser.setPathOptions(Options.HTTP_PATH);
         return new PathPatternRouteMatcher(pathPatternParser);
+    }
+
+    @Bean
+    public RSocketStrategiesCustomizer fileStreamRSocketStrategyCustomizer() {
+        return strategies -> {
+            strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
+                metadataExtractorRegistry.metadataToExtract(CONNECTOR_FILE_PART_NAME_MEDIA_TYPE,
+                        String.class,
+                        CONNECTOR_FILE_PART_NAME_METADATA_KEY
+                );
+            });
+        };
     }
 
     @Bean
@@ -150,11 +166,15 @@ public class RSocketMicroConnectServerAutoConfiguration {
             argumentResolverConfigurer.addCustomResolver(new PathVariableMethodArgumentResolver(messageHandler.getConversionService()));
             argumentResolverConfigurer.addCustomResolver(new HttpQueryHandlerMethodArgumentResolver(messageHandler.getConversionService()));
             argumentResolverConfigurer.addCustomResolver(new HttpQueryMapHandlerMethodArgumentResolver());
+            argumentResolverConfigurer.addCustomResolver(new RequestPartNameMethodArgumentResolver());
+            argumentResolverConfigurer.addCustomResolver(new RequestPartPayloadMethodArgumentResolver(messageHandler.getDecoders(),
+                    messageHandler.getValidator(),
+                    messageHandler.getReactiveAdapterRegistry()
+            ));
             argumentResolverConfigurer.addCustomResolver(new RequestBodyMethodArgumentResolver(messageHandler.getDecoders(),
-                            messageHandler.getValidator(),
-                            messageHandler.getReactiveAdapterRegistry()
-                    )
-            );
+                    messageHandler.getValidator(),
+                    messageHandler.getReactiveAdapterRegistry()
+            ));
         };
     }
 

@@ -62,6 +62,8 @@ import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConn
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorRegistry;
 
 import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_MEDIA_TYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_MEDIA_TYPE;
@@ -90,6 +92,18 @@ public class RSocketMicroConnectClientAutoConfiguration {
         PathPatternParser pathPatternParser = new PathPatternParser();
         pathPatternParser.setPathOptions(Options.HTTP_PATH);
         return new PathPatternRouteMatcher(pathPatternParser);
+    }
+
+    @Bean
+    public RSocketStrategiesCustomizer fileStreamRSocketStrategyCustomizer() {
+        return strategies -> {
+            strategies.metadataExtractorRegistry(metadataExtractorRegistry -> {
+                metadataExtractorRegistry.metadataToExtract(CONNECTOR_FILE_PART_NAME_MEDIA_TYPE,
+                        String.class,
+                        CONNECTOR_FILE_PART_NAME_METADATA_KEY
+                );
+            });
+        };
     }
 
     @Bean

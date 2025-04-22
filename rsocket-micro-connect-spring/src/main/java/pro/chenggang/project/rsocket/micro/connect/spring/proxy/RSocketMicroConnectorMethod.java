@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -35,8 +36,10 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil;
 import pro.chenggang.project.rsocket.micro.connect.spring.annotation.RSocketMicroConnector;
+import pro.chenggang.project.rsocket.micro.connect.spring.annotation.RequestPartName;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.ConnectorExecution.ConnectorExecutionBuilder;
 import reactor.core.publisher.Flux;
@@ -56,6 +59,7 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil.resolveReturnType;
+import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_MEDIA_TYPE;
 
@@ -69,6 +73,7 @@ public class RSocketMicroConnectorMethod {
 
     private final MethodSignature methodSignature;
     private final ConnectorData connectorData;
+    private final ResolvedParameterIndexInfo resolvedParameterIndexInfo;
     private final List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers;
 
     public RSocketMicroConnectorMethod(Class<?> connectorInterface,
@@ -76,6 +81,10 @@ public class RSocketMicroConnectorMethod {
                                        List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers) {
         this.methodSignature = new MethodSignature(connectorInterface, method);
         this.connectorData = new ConnectorData(connectorInterface, method);
+        this.resolvedParameterIndexInfo = new ResolvedParameterIndexInfo(connectorInterface,
+                method,
+                connectorData.getOriginalRoute()
+        );
         if (Objects.isNull(executionCustomizers) || executionCustomizers.isEmpty()) {
             this.executionCustomizers = Collections.emptyList();
         } else {
@@ -206,6 +215,14 @@ public class RSocketMicroConnectorMethod {
         if (Objects.nonNull(bodyData)) {
             requestSpec.data(bodyData);
         }
+        String requestPartName = connectorExecution.getRequestPartName();
+        if (Objects.nonNull(requestPartName)) {
+            requestSpec.metadata(metadataSpec -> {
+                metadataSpec.metadata(requestPartName,
+                        MimeTypeUtils.parseMimeType(CONNECTOR_FILE_PART_NAME_MEDIA_TYPE.toString())
+                );
+            });
+        }
         return requestSpec;
     }
 
@@ -255,40 +272,24 @@ public class RSocketMicroConnectorMethod {
                 .route(this.connectorData.getOriginalRoute());
         this.resolvePathVariables(args).ifPresent(connectorExecutionBuilder::pathVariables);
         this.resolveBody(args).ifPresent(connectorExecutionBuilder::bodyData);
+        this.resolveRequestPartName(args).ifPresent(connectorExecutionBuilder::requestPartName);
         this.resolveHeaderValues(args).ifPresent(connectorExecutionBuilder::headers);
         this.resolveQueryParams(args).ifPresent(connectorExecutionBuilder::queryParams);
         return connectorExecutionBuilder.build();
     }
 
     private Optional<Map<String, String>> resolvePathVariables(Object[] args) {
-        String originalRoute = this.connectorData.getOriginalRoute();
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        String[] pathVariableNames = RSocketMicroConnectUtil.substringsBetween(originalRoute, "{", "}");
-        if (Objects.isNull(pathVariableNames) || pathVariableNames.length == 0) {
-            return Optional.empty();
-        }
-        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
         Map<String, String> pathVariables = new HashMap<>();
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            Annotation[] annotations = parameterAnnotations[i];
-            for (Annotation annotation : annotations) {
-                if (DestinationVariable.class.equals(annotation.annotationType())
-                        || PathVariable.class.equals(annotation.annotationType())) {
-                    String pathValiableName = (String) AnnotationUtils.getValue(annotation);
-                    if (!StringUtils.hasText(pathValiableName)) {
-                        Parameter parameter = methodSignature.getParameters()[i];
-                        pathValiableName = parameter.getName();
-                    }
-                    Object arg = args[i];
+        this.resolvedParameterIndexInfo.getPathVariableIndex()
+                .forEach((pathVariableName, valueIndex) -> {
+                    Object arg = args[valueIndex];
                     if (Objects.nonNull(arg)) {
-                        pathVariables.put(pathValiableName, arg.toString());
+                        pathVariables.put(pathVariableName, arg.toString());
                     }
-                    break;
-                }
-            }
-        }
+                });
         if (pathVariables.isEmpty()) {
             return Optional.empty();
         }
@@ -299,90 +300,51 @@ public class RSocketMicroConnectorMethod {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            Annotation[] annotations = parameterAnnotations[i];
-            boolean isRequestBodyAnnotationMatched = false;
-            for (Annotation annotation : annotations) {
-                if (PathVariable.class.equals(annotation.annotationType())
-                        || DestinationVariable.class.equals(annotation.annotationType())
-                        || RequestParam.class.equals(annotation.annotationType())
-                        || RequestHeader.class.equals(annotation.annotationType())) {
-                    break;
-                }
-                if (RequestBody.class.equals(annotation.annotationType())) {
-                    isRequestBodyAnnotationMatched = true;
-                    break;
-                }
-            }
-            if (isRequestBodyAnnotationMatched) {
-                // The first @RequestBoyd arg
-                Object argValue = args[i];
-                if (Objects.nonNull(argValue)) {
-                    return Optional.of(argValue);
-                }
-            }
+        Integer bodyIndex = this.resolvedParameterIndexInfo.getBodyIndex();
+        if (Objects.isNull(bodyIndex)) {
+            return Optional.empty();
         }
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            Annotation[] annotations = parameterAnnotations[i];
-            boolean isAnyResolvedAnnotationMatched = false;
-            for (Annotation annotation : annotations) {
-                if (PathVariable.class.equals(annotation.annotationType())
-                        || DestinationVariable.class.equals(annotation.annotationType())
-                        || RequestParam.class.equals(annotation.annotationType())
-                        || RequestHeader.class.equals(annotation.annotationType())) {
-                    isAnyResolvedAnnotationMatched = true;
-                    break;
-                }
-            }
-            if (!isAnyResolvedAnnotationMatched) {
-                // The first no resolved annotation arg
-                Object argValue = args[i];
-                if (Objects.nonNull(argValue)) {
-                    return Optional.of(argValue);
-                }
-            }
-        }
-        return Optional.empty();
+        Object argValue = args[bodyIndex];
+        return Optional.ofNullable(argValue);
     }
 
     private Optional<MultiValueMap<String, String>> resolveHeaderValues(Object[] args) {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
-        Parameter[] parameters = methodSignature.getParameters();
-        final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            Annotation[] annotations = parameterAnnotations[i];
-            for (Annotation annotation : annotations) {
-                if (RequestHeader.class.equals(annotation.annotationType())) {
-                    Object argValue = args[i];
-                    if (Objects.nonNull(argValue)) {
-                        Class<?> parameterType = parameters[i].getType();
-                        if (HttpHeaders.class.equals(parameterType)) {
-                            headers.addAll((HttpHeaders) argValue);
-                            continue;
+        ResolvedHeaderIndex headerIndex = this.resolvedParameterIndexInfo.getHeaderIndex();
+        Integer singleHeaderIndex = headerIndex.singleHeaders();
+        MultiValueMap<String, Integer> namedHeaderIndex = headerIndex.namedHeader();
+        MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
+        if (Objects.nonNull(singleHeaderIndex)) {
+            Object arg = args[singleHeaderIndex];
+            if (Objects.nonNull(arg)) {
+                if (arg instanceof HttpHeaders argValue) {
+                    headers.addAll(argValue);
+                } else if (arg instanceof MultiValueMap<?, ?> argValue) {
+                    argValue.forEach((k, v) -> {
+                        if (!(k instanceof String)) {
+                            return;
                         }
-                        if (MultiValueMap.class.isAssignableFrom(parameterType)) {
-                            MultiValueMap<?, ?> multiValueMap = (MultiValueMap<?, ?>) argValue;
-                            multiValueMap.forEach((k, v) -> {
-                                if (!(k instanceof String)) {
-                                    return;
-                                }
-                                for (Object item : v) {
-                                    if (!(item instanceof String)) {
-                                        headers.add((String) k, String.valueOf(item));
-                                    } else {
-                                        headers.add((String) k, (String) item);
-                                    }
-                                }
-                            });
+                        for (Object item : v) {
+                            if (!(item instanceof String)) {
+                                headers.add((String) k, String.valueOf(item));
+                            } else {
+                                headers.add((String) k, (String) item);
+                            }
                         }
-                    }
+                    });
                 }
             }
         }
+        namedHeaderIndex.forEach((name, indexList) -> {
+            indexList.forEach(index -> {
+                Object argValue = args[index];
+                if (Objects.nonNull(argValue)) {
+                    headers.add(name, argValue.toString());
+                }
+            });
+        });
         if (headers.isEmpty()) {
             return Optional.empty();
         }
@@ -393,29 +355,221 @@ public class RSocketMicroConnectorMethod {
         if (Objects.isNull(args) || args.length == 0) {
             return Optional.empty();
         }
-        final MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
-        Annotation[][] parameterAnnotations = methodSignature.getParameterAnnotations();
-        Parameter[] parameters = methodSignature.getParameters();
-        for (int i = 0; i < parameterAnnotations.length; i++) {
-            Annotation[] annotations = parameterAnnotations[i];
-            for (Annotation annotation : annotations) {
-                if (RequestParam.class.equals(annotation.annotationType())) {
-                    String requestParamName = (String) AnnotationUtils.getValue(annotation);
-                    if (!StringUtils.hasText(requestParamName)) {
-                        Parameter parameter = parameters[i];
-                        requestParamName = parameter.getName();
-                    }
-                    Object argValue = args[i];
-                    if (Objects.nonNull(argValue)) {
-                        multiValueMap.add(requestParamName, String.valueOf(argValue));
-                    }
-                }
-            }
-        }
+        MultiValueMap<String, String> multiValueMap = new LinkedMultiValueMap<>();
+        this.resolvedParameterIndexInfo.getQueryParamIndex()
+                .forEach((name, indexList) -> {
+                    indexList.forEach(index -> {
+                        Object argValue = args[index];
+                        if (Objects.nonNull(argValue)) {
+                            multiValueMap.add(name, argValue.toString());
+                        }
+                    });
+                });
         if (multiValueMap.isEmpty()) {
             return Optional.empty();
         }
         return Optional.of(multiValueMap);
+    }
+
+    private Optional<String> resolveRequestPartName(Object[] args) {
+        if (Objects.isNull(args) || args.length == 0) {
+            return Optional.empty();
+        }
+        Integer partNameIndex = this.resolvedParameterIndexInfo.getPartNameIndex();
+        if (Objects.nonNull(partNameIndex)) {
+            Object argValue = args[partNameIndex];
+            if (Objects.nonNull(argValue)) {
+                return Optional.of(argValue.toString());
+            }
+        }
+        return Optional.empty();
+    }
+
+    @Getter
+    static class ResolvedParameterIndexInfo {
+
+        private final Map<String, Integer> pathVariableIndex;
+        private final Integer bodyIndex;
+        private final ResolvedHeaderIndex headerIndex;
+        private final MultiValueMap<String, Integer> queryParamIndex;
+        private final Integer partNameIndex;
+
+        ResolvedParameterIndexInfo(Class<?> connectorInterface, Method connectorMethod, String originalRoute) {
+            this.pathVariableIndex = this.resolvePathVariableIndex(connectorMethod, originalRoute);
+            this.bodyIndex = this.resolveBodyIndex(connectorInterface, connectorMethod);
+            this.headerIndex = this.resolveHeaderIndex(connectorMethod);
+            this.queryParamIndex = this.resolveQueryParamIndex(connectorMethod);
+            this.partNameIndex = this.resolveRequestPartNameIndex(connectorMethod);
+        }
+
+        private Map<String, Integer> resolvePathVariableIndex(Method connectorMethod, String originalRoute) {
+            String[] pathVariableNames = RSocketMicroConnectUtil.substringsBetween(originalRoute, "{", "}");
+            if (Objects.isNull(pathVariableNames) || pathVariableNames.length == 0) {
+                return Collections.emptyMap();
+            }
+            if (connectorMethod.getParameterCount() == 0) {
+                return Collections.emptyMap();
+            }
+            Annotation[][] parameterAnnotations = connectorMethod.getParameterAnnotations();
+            Map<String, Integer> pathVariables = new HashMap<>();
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                for (Annotation annotation : annotations) {
+                    if (DestinationVariable.class.equals(annotation.annotationType())
+                            || PathVariable.class.equals(annotation.annotationType())) {
+                        String pathValiableName = (String) AnnotationUtils.getValue(annotation);
+                        if (!StringUtils.hasText(pathValiableName)) {
+                            Parameter parameter = connectorMethod.getParameters()[i];
+                            pathValiableName = parameter.getName();
+                        }
+                        pathVariables.put(pathValiableName, i);
+                        break;
+                    }
+                }
+            }
+            return pathVariables;
+        }
+
+        private Integer resolveBodyIndex(Class<?> connectorInterface, Method connectorMethod) {
+            if (connectorMethod.getParameterCount() == 0) {
+                return null;
+            }
+            Parameter[] parameters = connectorMethod.getParameters();
+            Annotation[][] parameterAnnotations = connectorMethod.getParameterAnnotations();
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                boolean isRequestBodyAnnotationMatched = false;
+                boolean isRequestPartAnnotationMatched = false;
+                for (Annotation annotation : annotations) {
+                    if (PathVariable.class.equals(annotation.annotationType())
+                            || DestinationVariable.class.equals(annotation.annotationType())
+                            || RequestParam.class.equals(annotation.annotationType())
+                            || RequestHeader.class.equals(annotation.annotationType())) {
+                        break;
+                    }
+                    if (RequestBody.class.equals(annotation.annotationType())) {
+                        isRequestBodyAnnotationMatched = true;
+                        break;
+                    }
+                    if (RequestPart.class.equals(annotation.annotationType())) {
+                        isRequestPartAnnotationMatched = true;
+                        break;
+                    }
+                }
+                if (isRequestBodyAnnotationMatched || isRequestPartAnnotationMatched) {
+                    if (isRequestPartAnnotationMatched) {
+                        Class<?> inferredType = RSocketMicroConnectUtil.parseInferredClass(parameters[i].getParameterizedType());
+                        if (!DataBuffer.class.isAssignableFrom(inferredType)) {
+                            throw new IllegalArgumentException(
+                                    "@RequestPart only support Flux<org.springframework.core.io.buffer.DataBuffer> type parameter, " +
+                                            "please check method " + connectorMethod + " of interface " + connectorInterface);
+                        }
+                    }
+                    // The first @RequestBody or @RequestPart arg
+                    return i;
+                }
+            }
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                boolean isAnyResolvedAnnotationMatched = false;
+                for (Annotation annotation : annotations) {
+                    if (PathVariable.class.equals(annotation.annotationType())
+                            || DestinationVariable.class.equals(annotation.annotationType())
+                            || RequestParam.class.equals(annotation.annotationType())
+                            || RequestHeader.class.equals(annotation.annotationType())
+                            || RequestPartName.class.equals(annotation.annotationType())) {
+                        isAnyResolvedAnnotationMatched = true;
+                        break;
+                    }
+                }
+                if (!isAnyResolvedAnnotationMatched) {
+                    // The first no-resolved annotated arg
+                    return i;
+                }
+            }
+            return null;
+        }
+
+
+        private ResolvedHeaderIndex resolveHeaderIndex(Method connectorMethod) {
+            MultiValueMap<String, Integer> namedHeaderIndex = new LinkedMultiValueMap<>();
+            Integer singleHeaderIndex = null;
+            if (connectorMethod.getParameterCount() == 0) {
+                return new ResolvedHeaderIndex(singleHeaderIndex, namedHeaderIndex);
+            }
+            Annotation[][] parameterAnnotations = connectorMethod.getParameterAnnotations();
+            Parameter[] parameters = connectorMethod.getParameters();
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                for (Annotation annotation : annotations) {
+                    if (RequestHeader.class.equals(annotation.annotationType())) {
+                        Class<?> parameterType = parameters[i].getType();
+                        if (HttpHeaders.class.equals(parameterType) && Objects.isNull(singleHeaderIndex)) {
+                            singleHeaderIndex = i;
+                            continue;
+                        }
+                        if (MultiValueMap.class.isAssignableFrom(parameterType) && Objects.isNull(singleHeaderIndex)) {
+                            singleHeaderIndex = i;
+                            continue;
+                        }
+                        RequestHeader requestHeader = parameters[i].getAnnotation(RequestHeader.class);
+                        if (StringUtils.hasText(requestHeader.name())) {
+                            namedHeaderIndex.add(requestHeader.name(), i);
+                        }
+                    }
+                }
+            }
+            return new ResolvedHeaderIndex(singleHeaderIndex, namedHeaderIndex);
+        }
+
+        private MultiValueMap<String, Integer> resolveQueryParamIndex(Method connectorMethod) {
+            MultiValueMap<String, Integer> queryParamIndex = new LinkedMultiValueMap<>();
+            if (connectorMethod.getParameterCount() == 0) {
+                return queryParamIndex;
+            }
+            Annotation[][] parameterAnnotations = connectorMethod.getParameterAnnotations();
+            Parameter[] parameters = connectorMethod.getParameters();
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                for (Annotation annotation : annotations) {
+                    if (RequestParam.class.equals(annotation.annotationType())) {
+                        String requestParamName = (String) AnnotationUtils.getValue(annotation);
+                        if (!StringUtils.hasText(requestParamName)) {
+                            Parameter parameter = parameters[i];
+                            requestParamName = parameter.getName();
+                        }
+                        queryParamIndex.add(requestParamName, i);
+                    }
+                }
+            }
+            return queryParamIndex;
+        }
+
+        private Integer resolveRequestPartNameIndex(Method connectorMethod) {
+            if (connectorMethod.getParameterCount() == 0) {
+                return null;
+            }
+            Annotation[][] parameterAnnotations = connectorMethod.getParameterAnnotations();
+            Parameter[] parameters = connectorMethod.getParameters();
+            for (int i = 0; i < parameterAnnotations.length; i++) {
+                Annotation[] annotations = parameterAnnotations[i];
+                for (Annotation annotation : annotations) {
+                    if (RequestPartName.class.equals(annotation.annotationType())) {
+                        if (String.class.equals(parameters[i].getType())) {
+                            return i;
+                        } else {
+                            throw new IllegalArgumentException("@RequestPartName should be annotated on a String type value, " +
+                                    "please check parameter " + parameters[i] + " in method " + connectorMethod);
+                        }
+                    }
+                }
+            }
+            return null;
+        }
+
+    }
+
+    private record ResolvedHeaderIndex(Integer singleHeaders, MultiValueMap<String, Integer> namedHeader) {
     }
 
     /**

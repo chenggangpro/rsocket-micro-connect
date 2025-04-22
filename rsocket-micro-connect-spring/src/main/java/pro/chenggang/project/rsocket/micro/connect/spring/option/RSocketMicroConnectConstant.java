@@ -30,9 +30,15 @@ public abstract class RSocketMicroConnectConstant {
 
     public static final MediaType CONNECTOR_QUERY_MEDIA_TYPE = new MediaType("application", "connector-query");
 
+    public static final MediaType CONNECTOR_FILE_PART_NAME_MEDIA_TYPE = new MediaType("application",
+            "connector-file-part-name"
+    );
+
     public static final String CONNECTOR_HEADER_METADATA_KEY = "connector-header";
 
     public static final String CONNECTOR_QUERY_METADATA_KEY = "connector-query";
+
+    public static final String CONNECTOR_FILE_PART_NAME_METADATA_KEY = "connector-file-part-name";
 
     public static final String DISCOVER_ENABLE_RSOCKET_METADATA_KEY = "rsocket-micro-connect.enable";
 

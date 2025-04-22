@@ -45,6 +45,8 @@ public final class ConnectorExecution {
     private String route;
     @Getter
     private Object bodyData;
+    @Getter
+    private String requestPartName;
     private final Map<String, String> pathVariables = new HashMap<>();
     private final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
     private final MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
@@ -53,12 +55,14 @@ public final class ConnectorExecution {
     private ConnectorExecution(@NonNull ConnectorExecutionMetadata connectorExecutionMetadata,
                                @NonNull String route,
                                Object bodyData,
+                               String requestPartName,
                                Map<String, String> pathVariables,
                                MultiValueMap<String, String> headers,
                                MultiValueMap<String, String> queryParams) {
         this.connectorExecutionMetadata = connectorExecutionMetadata;
         this.route = route;
         this.bodyData = bodyData;
+        this.requestPartName = requestPartName;
         if (Objects.nonNull(pathVariables) && !pathVariables.isEmpty()) {
             this.pathVariables.putAll(pathVariables);
         }
@@ -80,6 +84,7 @@ public final class ConnectorExecution {
         return new ConnectorExecution(connectorExecution.getConnectorExecutionMetadata(),
                 connectorExecution.getRoute(),
                 connectorExecution.getBodyData(),
+                connectorExecution.getRequestPartName(),
                 connectorExecution.getPathVariables(),
                 connectorExecution.getHeaders(),
                 connectorExecution.getQueryParams()
@@ -133,6 +138,17 @@ public final class ConnectorExecution {
      */
     public ConnectorExecution bodyData(Object body) {
         this.bodyData = body;
+        return this;
+    }
+
+    /**
+     * Configure request part name.
+     *
+     * @param requestPartName the request part name
+     * @return the connector execution
+     */
+    public ConnectorExecution requestPartName(@NonNull String requestPartName) {
+        this.requestPartName = requestPartName;
         return this;
     }
 
