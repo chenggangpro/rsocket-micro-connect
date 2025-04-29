@@ -18,6 +18,8 @@ package pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance;
 import io.rsocket.loadbalance.LoadbalanceStrategy;
 import lombok.NonNull;
 
+import java.net.URI;
+
 /**
  * The rocket load-balance strategies.
  *
@@ -30,8 +32,8 @@ public interface RSocketLoadBalanceStrategies {
     /**
      * Gets load-balance strategy.
      *
-     * @param rsocketHost the rsocket host
+     * @param transportURI the transport uri
      * @return the load-balance strategy
      */
-    LoadbalanceStrategy getLoadBalanceStrategy(@NonNull String rsocketHost);
+    LoadbalanceStrategy getLoadBalanceStrategy(@NonNull URI transportURI);
 }

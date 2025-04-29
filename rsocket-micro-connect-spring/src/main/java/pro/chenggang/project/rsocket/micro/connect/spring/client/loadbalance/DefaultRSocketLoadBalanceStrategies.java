@@ -19,6 +19,8 @@ import io.rsocket.loadbalance.LoadbalanceStrategy;
 import io.rsocket.loadbalance.RoundRobinLoadbalanceStrategy;
 import lombok.NonNull;
 
+import java.net.URI;
+
 /**
  * The default rsocket load-balance strategies.
  *
@@ -31,7 +33,7 @@ public class DefaultRSocketLoadBalanceStrategies implements RSocketLoadBalanceSt
     private final LoadbalanceStrategy loadbalanceStrategy = new RoundRobinLoadbalanceStrategy();
 
     @Override
-    public LoadbalanceStrategy getLoadBalanceStrategy(@NonNull String rsocketHost) {
+    public LoadbalanceStrategy getLoadBalanceStrategy(@NonNull URI transportURI) {
         return this.loadbalanceStrategy;
     }
 }

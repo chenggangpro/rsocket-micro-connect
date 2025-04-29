@@ -92,7 +92,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
         );
         rSocketServiceInstanceRefresherCache.computeIfAbsent(transportURI, this::newRSocketServiceInstanceRefresher);
         return builder.transports(rSocketServiceInstanceData.getInstances(),
-                rSocketLoadBalanceStrategies.getLoadBalanceStrategy(transportURI.getHost())
+                rSocketLoadBalanceStrategies.getLoadBalanceStrategy(transportURI)
         );
     }
 
@@ -117,9 +117,10 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
         return Flux.interval(Duration.ZERO, refreshInterval)
                 .flatMap(__ -> this.loadRSocketServiceInstance(transportURI))
                 .onErrorResume(Throwable.class, throwable -> {
-                    log.error("Exception occurred while loading LoadBalanceTarget from discover client", throwable);
-                    return Mono.empty();
-                })
+                            log.error("Exception occurred while loading LoadBalanceTarget from discover client", throwable);
+                            return Mono.empty();
+                        }
+                )
                 .subscribe();
     }
 
@@ -219,6 +220,10 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                                         .build()
                                         .toUri();
                             }
+                            log.warn("Unsupported custom rsocket server port {} from metadata: {}, this will be ignored",
+                                    port,
+                                    DISCOVER_RSOCKET_PORT_METADATA_KEY
+                            );
                             return null;
                         }
                     }
@@ -280,8 +285,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                 transportURI,
                 newLoadBalancedTargetData.size()
         );
-        return rSocketServiceInstanceData
-                .tryEmitNext(newLoadBalancedTargetData.values().stream().toList());
+        return rSocketServiceInstanceData.tryEmitNext(List.copyOf(newLoadBalancedTargetData.values()));
     }
 
     @Slf4j
