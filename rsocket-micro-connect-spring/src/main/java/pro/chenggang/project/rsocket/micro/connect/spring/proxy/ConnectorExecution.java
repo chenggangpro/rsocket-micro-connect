@@ -15,8 +15,6 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
-import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NonNull;
 import org.springframework.util.Assert;
@@ -51,7 +49,6 @@ public final class ConnectorExecution {
     private final MultiValueMap<String, String> headers = new LinkedMultiValueMap<>();
     private final MultiValueMap<String, String> queryParams = new LinkedMultiValueMap<>();
 
-    @Builder(access = AccessLevel.PACKAGE)
     private ConnectorExecution(@NonNull ConnectorExecutionMetadata connectorExecutionMetadata,
                                @NonNull String route,
                                Object bodyData,
@@ -72,6 +69,15 @@ public final class ConnectorExecution {
         if (Objects.nonNull(queryParams) && !queryParams.isEmpty()) {
             this.queryParams.putAll(queryParams);
         }
+    }
+
+    /**
+     * New connector execution builder.
+     *
+     * @return the connector execution builder
+     */
+    static ConnectorExecutionBuilder builder() {
+        return new ConnectorExecutionBuilder();
     }
 
     /**
@@ -325,6 +331,114 @@ public final class ConnectorExecution {
     public ConnectorExecution removeQueryParams(@NonNull String queryName) {
         this.queryParams.remove(queryName);
         return this;
+    }
+
+    /**
+     * Connector execution builder
+     */
+    static class ConnectorExecutionBuilder {
+
+        private ConnectorExecutionMetadata connectorExecutionMetadata;
+        private String route;
+        private Object bodyData;
+        private String requestPartName;
+        private Map<String, String> pathVariables;
+        private MultiValueMap<String, String> headers;
+        private MultiValueMap<String, String> queryParams;
+
+        /**
+         * Configure connector execution metadata.
+         *
+         * @param connectorExecutionMetadata the connector execution metadata
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder connectorExecutionMetadata(final @NonNull ConnectorExecutionMetadata connectorExecutionMetadata) {
+            this.connectorExecutionMetadata = connectorExecutionMetadata;
+            return this;
+        }
+
+        /**
+         * Configure route.
+         *
+         * @param route the route
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder route(final @NonNull String route) {
+            this.route = route;
+            return this;
+        }
+
+        /**
+         * Configure body data.
+         *
+         * @param bodyData the body data
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder bodyData(final Object bodyData) {
+            this.bodyData = bodyData;
+            return this;
+        }
+
+
+        /**
+         * Configure request part name.
+         *
+         * @param requestPartName the request part name
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder requestPartName(final String requestPartName) {
+            this.requestPartName = requestPartName;
+            return this;
+        }
+
+        /**
+         * Configure path variables.
+         *
+         * @param pathVariables the path variables
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder pathVariables(final Map<String, String> pathVariables) {
+            this.pathVariables = pathVariables;
+            return this;
+        }
+
+        /**
+         * Configure headers.
+         *
+         * @param headers the headers
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder headers(final MultiValueMap<String, String> headers) {
+            this.headers = headers;
+            return this;
+        }
+
+        /**
+         * Configure query params.
+         *
+         * @param queryParams the query params
+         * @return the connector execution builder
+         */
+        ConnectorExecutionBuilder queryParams(final MultiValueMap<String, String> queryParams) {
+            this.queryParams = queryParams;
+            return this;
+        }
+
+        /**
+         * Build connector execution.
+         *
+         * @return the connector execution
+         */
+        ConnectorExecution build() {
+            return new ConnectorExecution(this.connectorExecutionMetadata,
+                    this.route,
+                    this.bodyData,
+                    this.requestPartName,
+                    this.pathVariables,
+                    this.headers,
+                    this.queryParams
+            );
+        }
     }
 
 }
