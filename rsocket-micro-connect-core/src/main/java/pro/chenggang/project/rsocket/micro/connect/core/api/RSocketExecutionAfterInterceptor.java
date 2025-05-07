@@ -28,8 +28,8 @@ public interface RSocketExecutionAfterInterceptor extends RSocketExecutionInterc
 
     /**
      * Intercept the execution of an RSocket <i>after</i> its successful invocation.
-     * This execution will invoke in <b>REVERSE</> order.
-     * When using request-stream or request-channel of RSocket, this will invoke in each item of response Flux
+     * <p/>
+     * <li>This execution will invoke in <b>REVERSE</> order.</li>
      *
      * @param exchange the current rsocket exchange
      * @param chain    the chain

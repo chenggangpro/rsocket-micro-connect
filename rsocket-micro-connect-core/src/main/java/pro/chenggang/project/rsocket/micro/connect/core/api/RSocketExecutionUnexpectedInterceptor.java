@@ -28,8 +28,9 @@ public interface RSocketExecutionUnexpectedInterceptor extends RSocketExecutionI
 
     /**
      * Intercept the execution of an RSocket <i>unexpected</i> its error or cancel invocation.
-     * This execution will invoke in resources cleanup
-     * This execution will invoke in natural order.
+     * <p/>
+     * <li>This execution will invoke in resources cleanup.</li>
+     * <li>This execution will invoke in natural order.</li>
      *
      * @param exchange the current rsocket exchange
      * @param chain    the chain

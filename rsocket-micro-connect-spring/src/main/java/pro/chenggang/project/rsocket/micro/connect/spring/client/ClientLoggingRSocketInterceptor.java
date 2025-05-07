@@ -64,6 +64,9 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             return chain.next(exchange);
         }
         Map<String, Object> attributes = exchange.getAttributes();
+        if(attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
+            return chain.next(exchange);
+        }
         attributes.put(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         Optional<Payload> optionalPayload = exchange.getPayload();
         if (optionalPayload.isPresent()) {

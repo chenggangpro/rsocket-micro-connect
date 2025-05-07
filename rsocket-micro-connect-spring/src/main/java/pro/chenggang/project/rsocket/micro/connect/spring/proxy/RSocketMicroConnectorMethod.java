@@ -107,6 +107,14 @@ public class RSocketMicroConnectorMethod {
         if (this.methodSignature.returnsMany) {
             return this.executeRequestStreamOrChannel(rSocketRequesterRegistry, connectorExecution);
         }
+        if (Objects.nonNull(connectorExecution.getBodyData()) && connectorExecution.getBodyData() instanceof Flux) {
+            return this.executeRequestStreamOrChannel(rSocketRequesterRegistry, connectorExecution)
+                    .singleOrEmpty()
+                    .onErrorMap(IndexOutOfBoundsException.class,
+                            ex -> new IllegalStateException("The response data count of RSocket is more than one, " +
+                                    "but execution method returns Mono<...>. Execution method: " + this.methodSignature.getConnectorMethod())
+                    );
+        }
         return this.executeRequestResponse(rSocketRequesterRegistry, connectorExecution);
     }
 
