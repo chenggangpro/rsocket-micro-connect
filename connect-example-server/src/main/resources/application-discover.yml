@@ -1,0 +1,27 @@
+spring:
+  application:
+    name: connect-example-server
+  flyway:
+    enabled: false
+  jackson:
+    locale: zh_CN
+    time-zone: "Asia/Shanghai"
+  rsocket:
+    server:
+      port: 23408
+server:
+  port: 9091
+  shutdown: graceful
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  server:
+    add-application-context-header: false
+  cloudfoundry:
+    enabled: false
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    pro.chenggang: DEBUG

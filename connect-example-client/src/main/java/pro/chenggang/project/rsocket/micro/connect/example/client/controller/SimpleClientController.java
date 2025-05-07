@@ -1,0 +1,71 @@
+package pro.chenggang.project.rsocket.micro.connect.example.client.controller;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.codec.multipart.FilePart;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
+import org.springframework.web.bind.annotation.RestController;
+import pro.chenggang.project.rsocket.micro.connect.example.client.connector.SimpleRSocketMicroConnector;
+import pro.chenggang.project.rsocket.micro.connect.example.client.dto.BodyValue;
+import reactor.core.publisher.Mono;
+
+import java.util.stream.Collectors;
+
+/**
+ * @author Gang Cheng
+ * @version 0.1.0
+ * @since 0.1.0
+ */
+@RestController
+@RequiredArgsConstructor
+public class SimpleClientController {
+
+    private final SimpleRSocketMicroConnector simpleRSocketMicroConnector;
+
+    @GetMapping("/client/data/path-variable/{variable}")
+    public Mono<String> getDataWithPathVariable(@PathVariable("variable") String variable) {
+        return simpleRSocketMicroConnector.getSingleData(variable);
+    }
+
+    @GetMapping("/client/data/query-variable")
+    public Mono<String> getDataWithQueryParam(@RequestParam("var1") String variable1, @RequestParam("var2") String variable2) {
+        return simpleRSocketMicroConnector.getMultiData(variable1, variable2);
+    }
+
+    @PostMapping("/client/data/body")
+    public Mono<String> postDataWithBody(@RequestBody BodyValue bodyValue) {
+        return simpleRSocketMicroConnector.sendBodyData(bodyValue);
+    }
+
+    @GetMapping("/client/data/header")
+    public Mono<String> getDataWithHeader(@RequestHeader HttpHeaders headers) {
+        return simpleRSocketMicroConnector.getStreamData(headers)
+                .collect(Collectors.joining(","));
+    }
+
+    @GetMapping("/client/data/auto-header")
+    public Mono<String> getDataWithAutoHeader() {
+        return simpleRSocketMicroConnector.getStreamDataAutoHeader()
+                .collect(Collectors.joining(","));
+    }
+
+    @GetMapping("/client/data/extra-header")
+    public Mono<String> getDataWithExtraHeader() {
+        return simpleRSocketMicroConnector.getExtraHeader("x-extra-header-value");
+    }
+
+    @PostMapping(value = "/client/data/file-upload")
+    public Mono<String> postDataWithUploadFile(@RequestPart("file") FilePart filePart) {
+        return simpleRSocketMicroConnector.uploadFile(
+                filePart.filename(),
+                filePart.content()
+        );
+    }
+
+}

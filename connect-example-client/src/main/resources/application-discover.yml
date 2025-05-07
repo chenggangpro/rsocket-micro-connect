@@ -1,0 +1,28 @@
+spring:
+  application:
+    name: connect-example-client
+  flyway:
+    enabled: false
+  jackson:
+    locale: zh_CN
+    time-zone: "Asia/Shanghai"
+server:
+  port: 9092
+  shutdown: graceful
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  server:
+    add-application-context-header: false
+  cloudfoundry:
+    enabled: false
+logging:
+  pattern:
+    level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
+  level:
+    pro.chenggang: DEBUG
+
+rsocket-micro-connect:
+  client:
+    enable-discover: true

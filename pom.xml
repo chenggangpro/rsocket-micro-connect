@@ -30,13 +30,6 @@
     <description>RSocket Micro Connect</description>
     <url>https://github.com/chenggangpro/rsocket-micro-connect</url>
 
-    <modules>
-        <module>rsocket-micro-connect-core</module>
-        <module>rsocket-micro-connect-spring</module>
-        <module>rsocket-micro-connect-client-starter</module>
-        <module>rsocket-micro-connect-server-starter</module>
-    </modules>
-
     <licenses>
         <license>
             <name>The Apache Software License, Version 2.0</name>
@@ -169,7 +162,27 @@
 
     <profiles>
         <profile>
+            <id>default</id>
+            <activation>
+                <activeByDefault>true</activeByDefault>
+            </activation>
+            <modules>
+                <module>rsocket-micro-connect-core</module>
+                <module>rsocket-micro-connect-spring</module>
+                <module>rsocket-micro-connect-client-starter</module>
+                <module>rsocket-micro-connect-server-starter</module>
+                <module>connect-example-server</module>
+                <module>connect-example-client</module>
+            </modules>
+        </profile>
+        <profile>
             <id>release</id>
+            <modules>
+                <module>rsocket-micro-connect-core</module>
+                <module>rsocket-micro-connect-spring</module>
+                <module>rsocket-micro-connect-client-starter</module>
+                <module>rsocket-micro-connect-server-starter</module>
+            </modules>
             <properties>
                 <javadoc.opts>-Xdoclint:none</javadoc.opts>
             </properties>
