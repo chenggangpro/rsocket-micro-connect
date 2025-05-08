@@ -147,6 +147,13 @@ The server side configuration is the same as the configuration of [simple-server
         * `tcp://some-service-a`
         * `ws://some-service-b`
         * `wss://some-service-c`
+* The RSocket server port ought to be configured within the instance's metadata during the discovery registration process. In Nacos Discovery, the metadata can be configured through the web editor.
+  ```yaml
+  metadata:
+    "rsocket-micro-connect.port": 23408 # the port of RSocket instance
+    "rsocket-micro-connect.enable": true # if this instance can be used in RSocket's load-balancer
+  ```
+  If either `"rsocket-micro-connect.enable": true` or `"rsocket-micro-connect.port"` is not configured within the instance's metadata, the client will be unable to utilize the server instance for RSocket load balancing.
 
 * Then you can use the bean of the defined interface in your Spring application as usual.
 
