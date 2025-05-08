@@ -30,7 +30,7 @@ public interface RSocketExecutionBeforeInterceptor extends RSocketExecutionInter
      * Intercept the execution of an RSocket <i>before</i> its invocation.
      * <p/>
      * <li>This execution will invoke in natural order.</li>
-     * <li><b>This execution may execute multiple times when using REQUEST-CHANNEL of RSocket protocol such as file-uploading.</b></li>
+     * <li><b>This execution only execute ONCE with first payload when using REQUEST-CHANNEL of RSocket such as in file-uploading scenario.</b></li>
      *
      * @param exchange the current rsocket exchange
      * @param chain    the chain

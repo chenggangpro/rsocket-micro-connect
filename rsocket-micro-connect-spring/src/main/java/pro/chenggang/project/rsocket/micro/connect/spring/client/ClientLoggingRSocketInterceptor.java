@@ -53,8 +53,8 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 @RequiredArgsConstructor
 public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor, RSocketExecutionUnexpectedInterceptor, Ordered {
 
-    private final String EXECUTION_INSTANT_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".execution-instant";
-    private final String ROUTE_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".route";
+    private static final String EXECUTION_INSTANT_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".execution-instant";
+    private static final String ROUTE_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".route";
     private final RSocketStrategies strategies;
 
     @Override
@@ -64,7 +64,7 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             return chain.next(exchange);
         }
         Map<String, Object> attributes = exchange.getAttributes();
-        if(attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
+        if (attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
             return chain.next(exchange);
         }
         attributes.put(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
@@ -103,7 +103,11 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
         String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
-            log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration.toMillis());
+            log.info("<== RSocket[{}]: {}, Cost: {} ms",
+                    rSocketExchangeType,
+                    optionalInfo.get().getInfo(route),
+                    costDuration.toMillis()
+            );
         } else {
             log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
         }
@@ -127,7 +131,11 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
                         optionalThrowable.get()
                 );
             } else {
-                log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, optionalInfo.get().getInfo(route), costDuration.toMillis());
+                log.info("<== RSocket[{}]: {}, Cost: {} ms",
+                        rSocketExchangeType,
+                        optionalInfo.get().getInfo(route),
+                        costDuration.toMillis()
+                );
             }
         } else {
             if (optionalThrowable.isPresent()) {

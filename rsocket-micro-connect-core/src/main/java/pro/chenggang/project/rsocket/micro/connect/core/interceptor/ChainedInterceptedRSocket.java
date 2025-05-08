@@ -133,17 +133,20 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                         return Mono.just(this.beforeChain)
                                                 .flatMapMany(chain -> {
                                                     return Flux.from(payloads)
-                                                            .concatMap(payload -> {
-                                                                DefaultRSocketExchange exchange = newExchange(
-                                                                        REQUEST_CHANNEL,
-                                                                        payload,
-                                                                        dataMimeType,
-                                                                        metadataMimeType,
-                                                                        attributes
-                                                                );
-                                                                return chain.next(exchange)
-                                                                        .thenReturn(payload);
-                                                            });
+                                                            .switchOnFirst(((signal, payloadFlux) -> {
+                                                                if(signal.hasValue()){
+                                                                    DefaultRSocketExchange exchange = newExchange(
+                                                                            REQUEST_CHANNEL,
+                                                                            signal.get(),
+                                                                            dataMimeType,
+                                                                            metadataMimeType,
+                                                                            attributes
+                                                                    );
+                                                                    return chain.next(exchange)
+                                                                            .thenMany(payloadFlux);
+                                                                }
+                                                                return payloadFlux;
+                                                            }));
                                                 })
                                                 .as(super::requestChannel);
                                     },

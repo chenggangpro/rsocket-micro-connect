@@ -53,8 +53,8 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 @RequiredArgsConstructor
 public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor, RSocketExecutionUnexpectedInterceptor, Ordered {
 
-    private final String EXECUTION_INSTANT_ATTR_KEY = ServerLoggingRSocketInterceptor.class.getName() + ".execution-instant";
-    private final String ROUTE_ATTR_KEY = ServerLoggingRSocketInterceptor.class.getName() + ".route";
+    private static final String EXECUTION_INSTANT_ATTR_KEY = ServerLoggingRSocketInterceptor.class.getName() + ".execution-instant";
+    private static final String ROUTE_ATTR_KEY = ServerLoggingRSocketInterceptor.class.getName() + ".route";
     private final RSocketStrategies strategies;
 
     @Override
@@ -64,7 +64,7 @@ public class ServerLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
             return chain.next(exchange);
         }
         Map<String, Object> attributes = exchange.getAttributes();
-        if(attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
+        if (attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
             return chain.next(exchange);
         }
         attributes.put(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
