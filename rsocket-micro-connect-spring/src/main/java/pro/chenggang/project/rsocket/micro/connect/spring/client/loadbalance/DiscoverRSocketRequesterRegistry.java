@@ -194,10 +194,11 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                     Map<String, String> metadata = serviceInstance.getMetadata();
                     if (Objects.nonNull(metadata) && !metadata.isEmpty()) {
                         String discoverEnableRSocket = metadata.get(DISCOVER_ENABLE_RSOCKET_METADATA_KEY);
-                        if ("false".equalsIgnoreCase(discoverEnableRSocket)) {
-                            log.debug("Disabled rsocket server {} from metadata: {}",
+                        if (!"true".equalsIgnoreCase(discoverEnableRSocket)) {
+                            log.debug("Disabled rsocket server {} from metadata: {}, metadata value: {}",
                                     serviceInstance.getUri(),
-                                    DISCOVER_ENABLE_RSOCKET_METADATA_KEY
+                                    DISCOVER_ENABLE_RSOCKET_METADATA_KEY,
+                                    discoverEnableRSocket
                             );
                             return null;
                         }
@@ -220,7 +221,7 @@ public class DiscoverRSocketRequesterRegistry extends CachedRSocketRequesterRegi
                                         .build()
                                         .toUri();
                             }
-                            log.warn("Unsupported custom rsocket server port {} from metadata: {}, this will be ignored",
+                            log.warn("Unsupported custom rsocket server port {} from metadata: {}, this instance will be ignored",
                                     port,
                                     DISCOVER_RSOCKET_PORT_METADATA_KEY
                             );
