@@ -43,9 +43,6 @@ public class CachedRSocketRequesterRegistry implements RSocketRequesterRegistry,
 
     @Override
     public RSocketRequester getRSocketRequester(@NonNull URI transportURI) {
-        if (transportURI.getPort() <= 0) {
-            throw new IllegalArgumentException("RSocket transport port can not be negative or zero");
-        }
         return rSocketRequesterCache.compute(transportURI, this::initialize);
     }
 

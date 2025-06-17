@@ -50,6 +50,9 @@ public interface RSocketRequesterRegistry {
     default Optional<ClientTransport> getClientTransport(@NonNull URI transportURI) {
         String scheme = transportURI.getScheme();
         if ("tcp".equalsIgnoreCase(scheme)) {
+            if (transportURI.getPort() <= 0) {
+                throw new IllegalArgumentException("RSocket transport port can not be negative or zero");
+            }
             return Optional.of(TcpClientTransport.create(transportURI.getHost(), transportURI.getPort()));
         }
         if ("ws".equalsIgnoreCase(scheme) || "wss".equalsIgnoreCase(scheme)) {
