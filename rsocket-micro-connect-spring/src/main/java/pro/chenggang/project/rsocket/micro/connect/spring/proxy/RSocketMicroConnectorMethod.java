@@ -665,9 +665,6 @@ public class RSocketMicroConnectorMethod {
             if (!StringUtils.hasText(transportURI.getHost())) {
                 throw new IllegalArgumentException("RSocket transport host can not be blank");
             }
-            if (transportURI.getPort() <= 0) {
-                throw new IllegalArgumentException("RSocket transport port can not be negative or zero");
-            }
             this.transportURI = transportURI;
             this.originalRoute = extractRoute(connectorMethod);
         }

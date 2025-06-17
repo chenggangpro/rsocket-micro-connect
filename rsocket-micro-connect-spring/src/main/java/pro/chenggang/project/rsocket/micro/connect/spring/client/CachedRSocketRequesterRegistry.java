@@ -31,7 +31,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * The default rsocket requester registry.
  *
  * @author Gang Cheng
- * @version 0.1.0
+ * @version 0.2.0
  * @since 0.1.0
  */
 @Slf4j
@@ -43,6 +43,9 @@ public class CachedRSocketRequesterRegistry implements RSocketRequesterRegistry,
 
     @Override
     public RSocketRequester getRSocketRequester(@NonNull URI transportURI) {
+        if (transportURI.getPort() <= 0) {
+            throw new IllegalArgumentException("RSocket transport port can not be negative or zero");
+        }
         return rSocketRequesterCache.compute(transportURI, this::initialize);
     }
 
