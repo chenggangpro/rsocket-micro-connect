@@ -75,6 +75,7 @@
         <blockhound.version>1.0.11.RELEASE</blockhound.version>
         <junit.version>5.12.1</junit.version>
         <assertj.version>3.27.3</assertj.version>
+        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
@@ -219,6 +220,15 @@
                         </executions>
                         <configuration>
                             <keyname>${gpg.keyname}</keyname>
+                        </configuration>
+                    </plugin>
+                    <plugin>
+                        <groupId>org.sonatype.central</groupId>
+                        <artifactId>central-publishing-maven-plugin</artifactId>
+                        <version>${central-publishing-maven-plugin.version}</version>
+                        <extensions>true</extensions>
+                        <configuration>
+                            <publishingServerId>central</publishingServerId>
                         </configuration>
                     </plugin>
                 </plugins>
