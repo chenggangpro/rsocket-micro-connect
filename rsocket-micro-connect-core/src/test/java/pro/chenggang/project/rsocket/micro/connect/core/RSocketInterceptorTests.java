@@ -50,8 +50,7 @@ public class RSocketInterceptorTests extends AbstractRSocketMicroConnectTests {
                         WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA,
                         socketAcceptor,
                         List.of(new SimpleServerSideInterceptor(), new ContextServerSideInterceptor()),
-                        List.of(new SimpleServerSideInterceptor(), new ContextServerSideInterceptor()),
-                        null
+                        List.of(new SimpleServerSideInterceptor(), new ContextServerSideInterceptor())
                 );
             });
         });
@@ -65,8 +64,7 @@ public class RSocketInterceptorTests extends AbstractRSocketMicroConnectTests {
                     registry.forRequester(new ChainedRSocketInterceptor(WellKnownMimeType.TEXT_PLAIN,
                             WellKnownMimeType.MESSAGE_RSOCKET_COMPOSITE_METADATA,
                             List.of(new SimpleClientSideInterceptor(), new ContextClientSideInterceptor()),
-                            List.of(new SimpleClientSideInterceptor(), new ContextClientSideInterceptor()),
-                            null
+                            List.of(new SimpleClientSideInterceptor(), new ContextClientSideInterceptor())
                     ));
                 });
     }

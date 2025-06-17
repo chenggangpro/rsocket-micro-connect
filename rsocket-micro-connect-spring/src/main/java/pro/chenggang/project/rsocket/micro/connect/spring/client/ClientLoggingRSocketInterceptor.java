@@ -15,22 +15,17 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.client;
 
-import io.rsocket.Payload;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.core.Ordered;
 import org.springframework.http.HttpHeaders;
-import org.springframework.messaging.rsocket.MetadataExtractor;
-import org.springframework.messaging.rsocket.RSocketStrategies;
-import org.springframework.util.MimeType;
-import org.springframework.util.MimeTypeUtils;
+import org.springframework.util.StringUtils;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExchange;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExchangeType;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketInterceptorChain;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RemoteRSocketInfo;
+import pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperties;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -40,7 +35,10 @@ import java.util.Objects;
 import java.util.Optional;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType.CLIENT;
-import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.common.AttributeLifecycleRSocketInterceptor.EXECUTION_INSTANT_ATTR_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.common.AttributeLifecycleRSocketInterceptor.HEADERS_ATTR_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.common.AttributeLifecycleRSocketInterceptor.ROUTE_ATTR_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperties.LOGGING_ATTR_KEY;
 
 /**
  * The Client side logging rsocket execution interceptor.
@@ -51,46 +49,40 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
  */
 @Slf4j
 @RequiredArgsConstructor
-public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor, RSocketExecutionUnexpectedInterceptor, Ordered {
+public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeInterceptor, RSocketExecutionAfterInterceptor {
 
-    private static final String EXECUTION_INSTANT_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".execution-instant";
-    private static final String ROUTE_ATTR_KEY = ClientLoggingRSocketInterceptor.class.getName() + ".route";
-    private final RSocketStrategies strategies;
+    private final RSocketMicroConnectClientProperties clientProperties;
 
     @Override
     public Mono<Void> interceptBefore(RSocketExchange exchange, RSocketInterceptorChain chain) {
-        RSocketExchangeType rSocketExchangeType = exchange.getType();
-        if (!rSocketExchangeType.isRequest()) {
+        RSocketExchangeType exchangeType = exchange.getType();
+        if (!exchangeType.isRequest()) {
             return chain.next(exchange);
         }
+        String route = exchange.getAttribute(ROUTE_ATTR_KEY);
+        if (!StringUtils.hasText(route)) {
+            return Mono.error(new IllegalStateException("Route is missing in the RSocket exchange attributes."));
+        }
+        LoggingProperties properties = clientProperties.getLogging();
+        boolean loggingFlag = Objects.isNull(properties) || properties.isLoggingRoute(route);
         Map<String, Object> attributes = exchange.getAttributes();
-        if (attributes.containsKey(EXECUTION_INSTANT_ATTR_KEY)) {
+        attributes.put(LOGGING_ATTR_KEY, loggingFlag);
+        if (!loggingFlag) {
             return chain.next(exchange);
         }
-        attributes.put(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
-        Optional<Payload> optionalPayload = exchange.getPayload();
-        if (optionalPayload.isPresent()) {
-            Payload payload = optionalPayload.get();
-            MimeType metadataMimeType = exchange.getMetadataMimeType(MimeTypeUtils::parseMimeType);
-            Map<String, Object> extractedMetadata = strategies.metadataExtractor().extract(payload, metadataMimeType);
-            String route = (String) extractedMetadata.get(MetadataExtractor.ROUTE_KEY);
-            attributes.put(ROUTE_ATTR_KEY, route);
-            Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
-            if (optionalInfo.isPresent()) {
-                log.info(" ==> RSocket[{}]: {}", rSocketExchangeType, optionalInfo.get().getInfo(route));
-            } else {
-                log.info(" ==> RSocket[{}]: {}", rSocketExchangeType, route);
-            }
-            HttpHeaders httpHeaders = (HttpHeaders) extractedMetadata.get(CONNECTOR_HEADER_METADATA_KEY);
-            if (Objects.nonNull(httpHeaders)) {
-                httpHeaders.forEach((k, v) -> {
-                    if (HttpHeaders.AUTHORIZATION.equalsIgnoreCase(k)) {
-                        log.debug(" ==> Connector header: Key -> {}, Value -> ******", k);
-                        return;
-                    }
+        Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
+        if (optionalInfo.isPresent()) {
+            log.info(" ==> RSocket[{}]: {}", exchangeType, optionalInfo.get().getInfo(route));
+        } else {
+            log.info(" ==> RSocket[{}]: {}", exchangeType, route);
+        }
+        HttpHeaders httpHeaders = exchange.getAttribute(HEADERS_ATTR_KEY);
+        if (Objects.nonNull(httpHeaders)) {
+            httpHeaders.forEach((k, v) -> {
+                if (Objects.nonNull(properties) && properties.isLoggingHeader(k)) {
                     log.debug(" ==> Connector header: Key -> {}, Value -> {}", k, v);
-                });
-            }
+                }
+            });
         }
         return chain.next(exchange);
     }
@@ -98,28 +90,19 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
     @Override
     public Mono<Void> interceptAfter(RSocketExchange exchange, RSocketInterceptorChain chain) {
         RSocketExchangeType rSocketExchangeType = exchange.getType();
-        Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
-        Duration costDuration = Duration.between(executionInstant, Instant.now());
-        String route = exchange.getAttribute(ROUTE_ATTR_KEY);
-        Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
-        if (optionalInfo.isPresent()) {
-            log.info("<== RSocket[{}]: {}, Cost: {} ms",
-                    rSocketExchangeType,
-                    optionalInfo.get().getInfo(route),
-                    costDuration.toMillis()
-            );
-        } else {
-            log.info("<== RSocket[{}]: {}, Cost: {} ms", rSocketExchangeType, route, costDuration.toMillis());
+        if (!rSocketExchangeType.isRequest()) {
+            return chain.next(exchange);
         }
-        return chain.next(exchange);
-    }
-
-    @Override
-    public Mono<Void> interceptUnexpected(RSocketExchange exchange, RSocketInterceptorChain chain) {
-        RSocketExchangeType rSocketExchangeType = exchange.getType();
+        String route = exchange.getAttribute(ROUTE_ATTR_KEY);
+        if (!StringUtils.hasText(route)) {
+            return Mono.error(new IllegalStateException("Route is missing in the RSocket exchange attributes."));
+        }
+        boolean loggingFlag = exchange.getAttributeOrDefault(LOGGING_ATTR_KEY, true);
+        if (!loggingFlag) {
+            return chain.next(exchange);
+        }
         Instant executionInstant = exchange.getAttributeOrDefault(EXECUTION_INSTANT_ATTR_KEY, Instant.now());
         Duration costDuration = Duration.between(executionInstant, Instant.now());
-        String route = exchange.getAttribute(ROUTE_ATTR_KEY);
         Optional<Throwable> optionalThrowable = exchange.getError();
         Optional<RemoteRSocketInfo> optionalInfo = exchange.getRemoteRSocketInfo();
         if (optionalInfo.isPresent()) {
@@ -153,8 +136,8 @@ public class ClientLoggingRSocketInterceptor implements RSocketExecutionBeforeIn
     }
 
     @Override
-    public int getOrder() {
-        return HIGHEST_PRECEDENCE;
+    public int order() {
+        return Integer.MIN_VALUE + 1;
     }
 
     @Override

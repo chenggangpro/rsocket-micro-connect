@@ -36,6 +36,15 @@ public interface RSocketExecutionInterceptor {
     }
 
     /**
+     * The order of the rsocket execution interceptor.
+     *
+     * @return the int default to be 0
+     */
+    default int order() {
+        return 0;
+    }
+
+    /**
      * The rsocket execution interceptor type.
      */
     enum InterceptorType {

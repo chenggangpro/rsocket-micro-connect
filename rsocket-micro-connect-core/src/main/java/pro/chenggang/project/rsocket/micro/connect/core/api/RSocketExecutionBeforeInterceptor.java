@@ -29,7 +29,7 @@ public interface RSocketExecutionBeforeInterceptor extends RSocketExecutionInter
     /**
      * Intercept the execution of an RSocket <i>before</i> its invocation.
      * <p/>
-     * <li>This execution will invoke in natural order.</li>
+     * <li>This execution will invoke in <b>ASCENDING</b> order.</li>
      * <li><b>This execution only execute ONCE with first payload when using REQUEST-CHANNEL of RSocket such as in file-uploading scenario.</b></li>
      *
      * @param exchange the current rsocket exchange

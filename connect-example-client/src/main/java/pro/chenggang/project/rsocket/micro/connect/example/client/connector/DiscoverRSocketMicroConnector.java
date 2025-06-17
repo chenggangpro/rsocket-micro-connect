@@ -57,6 +57,12 @@ public interface DiscoverRSocketMicroConnector {
     @MessageMapping("/server/data/extra-header")
     Mono<String> getExtraHeader(@RequestHeader(name = "x-extra-header") String extraHeader);
 
+    @MessageMapping("/server/data/no-logging")
+    Mono<String> noLogging();
+
+    @MessageMapping("/server/data/no-logging-header")
+    Mono<String> noLoggingHeader(@RequestHeader(name = "x-extra-header") String extraHeader);
+
     @RequestMapping("/server/data/file-upload")
     Mono<String> uploadFile(@RequestPartName String name, Flux<DataBuffer> dataBufferFlux);
 }

@@ -75,6 +75,16 @@ public class SimpleClientController {
         return simpleRSocketMicroConnector.getExtraHeader("x-extra-header-value");
     }
 
+    @GetMapping("/client/data/no-logging")
+    public Mono<String> getDataWithNoLogging() {
+        return simpleRSocketMicroConnector.noLogging();
+    }
+
+    @GetMapping("/client/data/no-logging-header")
+    public Mono<String> getDataWithNoLoggingHeader() {
+        return simpleRSocketMicroConnector.noLoggingHeader("x-extra-header-value");
+    }
+
     @PostMapping(value = "/client/data/file-upload")
     public Mono<String> postDataWithUploadFile(@RequestPart("file") FilePart filePart) {
         return simpleRSocketMicroConnector.uploadFile(

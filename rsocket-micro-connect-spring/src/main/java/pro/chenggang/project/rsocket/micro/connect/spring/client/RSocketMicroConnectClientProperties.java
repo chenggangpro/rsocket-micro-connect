@@ -18,6 +18,7 @@ package pro.chenggang.project.rsocket.micro.connect.spring.client;
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.Getter;
 import lombok.Setter;
+import pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperties;
 
 import java.time.Duration;
 import java.util.List;
@@ -37,6 +38,11 @@ public class RSocketMicroConnectClientProperties {
      * The properties PREFIX.
      */
     public static final String PREFIX = "rsocket-micro-connect.client";
+
+    /**
+     * The Logging properties.
+     */
+    public LoggingProperties logging;
 
     /**
      * The Enable discover.

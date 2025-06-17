@@ -22,3 +22,10 @@ logging:
     level: "%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}]"
   level:
     pro.chenggang: DEBUG
+rsocket-micro-connect:
+  client:
+    logging:
+      exclude-routes:
+        - "/server/data/no-logging"
+      exclude-headers:
+        - "x-extra-header"

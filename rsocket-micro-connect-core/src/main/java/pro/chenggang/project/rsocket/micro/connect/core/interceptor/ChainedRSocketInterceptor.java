@@ -22,7 +22,6 @@ import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 
 import java.util.List;
 
@@ -42,7 +41,6 @@ public class ChainedRSocketInterceptor implements RSocketInterceptor {
     private final WellKnownMimeType defaultMetadataMimeType;
     private final List<RSocketExecutionBeforeInterceptor> beforeInterceptors;
     private final List<RSocketExecutionAfterInterceptor> afterInterceptors;
-    private final List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors;
 
     @Override
     public RSocket apply(RSocket rSocket) {
@@ -50,8 +48,7 @@ public class ChainedRSocketInterceptor implements RSocketInterceptor {
                 defaultDataMimeType,
                 defaultMetadataMimeType,
                 beforeInterceptors,
-                afterInterceptors,
-                unexpectedInterceptors
+                afterInterceptors
         );
     }
 }

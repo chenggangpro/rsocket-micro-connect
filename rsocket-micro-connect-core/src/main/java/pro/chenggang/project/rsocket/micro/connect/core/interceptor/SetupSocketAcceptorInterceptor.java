@@ -21,7 +21,6 @@ import io.rsocket.plugins.SocketAcceptorInterceptor;
 import lombok.extern.slf4j.Slf4j;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 
 import java.util.List;
 
@@ -42,24 +41,20 @@ public class SetupSocketAcceptorInterceptor implements SocketAcceptorInterceptor
     private final WellKnownMimeType defaultMetadataMimeType;
     private final List<RSocketExecutionBeforeInterceptor> beforeInterceptors;
     private final List<RSocketExecutionAfterInterceptor> afterInterceptors;
-    private final List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors;
 
     public SetupSocketAcceptorInterceptor(List<RSocketExecutionBeforeInterceptor> beforeInterceptors,
-                                          List<RSocketExecutionAfterInterceptor> afterInterceptors,
-                                          List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
-        this(APPLICATION_CBOR, MESSAGE_RSOCKET_COMPOSITE_METADATA, beforeInterceptors, afterInterceptors, unexpectedInterceptors);
+                                          List<RSocketExecutionAfterInterceptor> afterInterceptors) {
+        this(APPLICATION_CBOR, MESSAGE_RSOCKET_COMPOSITE_METADATA, beforeInterceptors, afterInterceptors);
     }
 
     public SetupSocketAcceptorInterceptor(WellKnownMimeType defaultDataMimeType,
                                           WellKnownMimeType defaultMetadataMimeType,
                                           List<RSocketExecutionBeforeInterceptor> beforeInterceptors,
-                                          List<RSocketExecutionAfterInterceptor> afterInterceptors,
-                                          List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
+                                          List<RSocketExecutionAfterInterceptor> afterInterceptors) {
         this.defaultDataMimeType = defaultDataMimeType;
         this.defaultMetadataMimeType = defaultMetadataMimeType;
         this.beforeInterceptors = beforeInterceptors;
         this.afterInterceptors = afterInterceptors;
-        this.unexpectedInterceptors = unexpectedInterceptors;
     }
 
     @Override
@@ -68,8 +63,7 @@ public class SetupSocketAcceptorInterceptor implements SocketAcceptorInterceptor
                 defaultMetadataMimeType,
                 socketAcceptor,
                 beforeInterceptors,
-                afterInterceptors,
-                unexpectedInterceptors
+                afterInterceptors
         );
     }
 

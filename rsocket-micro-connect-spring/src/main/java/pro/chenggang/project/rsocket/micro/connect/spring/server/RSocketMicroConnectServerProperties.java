@@ -18,6 +18,7 @@ package pro.chenggang.project.rsocket.micro.connect.spring.server;
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.Getter;
 import lombok.Setter;
+import pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperties;
 
 /**
  * The RSocket micro connect server properties.
@@ -34,6 +35,11 @@ public class RSocketMicroConnectServerProperties {
      * The properties PREFIX.
      */
     public static final String PREFIX = "rsocket-micro-connect.server";
+
+    /**
+     * The Logging properties.
+     */
+    public LoggingProperties logging;
 
     /**
      * The Default data mime type.

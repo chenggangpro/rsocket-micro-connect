@@ -47,6 +47,18 @@ spring:
       port: 23408
 ```
 
+* Configure logging exclusion for RSocket Server
+
+```yaml
+rsocket-micro-connect:
+  server:
+    logging:
+      exclude-headers:
+        - some-header # if you don't want to log the specific header in the RSocket server logging content
+      exclude-routes:
+        - /server/data/** # if you don't want to log the specific RSocket route in the RSocket server logging content
+```
+
 * Define an RSocket class or use an existing REST controller class, then add the annotation [@RSocketMicroEndpoint](rsocket-micro-connect-spring/src/main/java/pro/chenggang/project/rsocket/micro/connect/spring/annotation/RSocketMicroEndpoint.java) to it.
 * Use `@MessageMapping` (`org.springframework.messaging.handler.annotation.MessageMapping`) on the method you want to expose as a RSocket endpoint.
     * You can define a RSocket path using `@MessageMapping#value`, similar to an HTTP path.
@@ -76,6 +88,18 @@ spring:
 * Then you can start the server application.
 
 ##### Client Side
+
+* Configure logging exclusion for RSocket Client
+
+```yaml
+rsocket-micro-connect:
+  client:
+    logging:
+      exclude-headers:
+        - some-header # if you don't want to log the specific header in the RSocket server logging content
+      exclude-routes:
+        - /server/data/** # if you don't want to log the specific RSocket route in the RSocket server logging content
+```
 
 * Define an interface with the annotation [@RSocketMicroConnector](rsocket-micro-connect-spring/src/main/java/pro/chenggang/project/rsocket/micro/connect/spring/annotation/RSocketMicroConnector.java).
 * Configure the address of the RSocket server in `@RSocketMicroConnector#value`, which should match the transport protocol of the RSocket server:
@@ -174,7 +198,7 @@ public class ServerController {
                     return Mono.fromCallable(() -> {
                                 File savedFile = new File(savedFilePath);
                                 long length = savedFile.length();
-                                savedFile.deleteOnExit();
+                                savedFile.delete();
                                 return length;
                             })
                             .map(length -> partName + ":" + length);
@@ -238,11 +262,9 @@ public class RSocketMicroConnectorConfiguration {
 
 ### Advanced Usages
 
-* There are three interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`. These interceptors can also implement the `Ordered` interface for configuring the sequence of the interceptor execution.
+* There are three interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`.
 * The interceptors are:
     * [RSocketExecutionBeforeInterceptor.java](rsocket-micro-connect-core/src/main/java/pro/chenggang/project/rsocket/micro/connect/core/api/RSocketExecutionBeforeInterceptor.java)
         * This interceptor executes before the actual RSocket execution and invokes in natural order.
     * [RSocketExecutionAfterInterceptor.java](rsocket-micro-connect-core/src/main/java/pro/chenggang/project/rsocket/micro/connect/core/api/RSocketExecutionAfterInterceptor.java)
         * This interceptor executes after the completion of the actual RSocket execution and invokes in <b>REVERSE</b> order.
-    * [RSocketExecutionUnexpectedInterceptor.java](rsocket-micro-connect-core/src/main/java/pro/chenggang/project/rsocket/micro/connect/core/api/RSocketExecutionUnexpectedInterceptor.java)
-        * This interceptor executes after any error signals or resource clean-up of the actual RSocket execution and invokes in natural order.

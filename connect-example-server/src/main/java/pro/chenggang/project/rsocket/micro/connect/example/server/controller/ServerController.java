@@ -36,8 +36,10 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.Map.Entry;
+
+import static java.nio.file.StandardOpenOption.CREATE_NEW;
+import static java.nio.file.StandardOpenOption.TRUNCATE_EXISTING;
 
 /**
  * @author Gang Cheng
@@ -87,17 +89,27 @@ public class ServerController {
         return Mono.just(extraHeader);
     }
 
+    @MessageMapping("/server/data/no-logging")
+    public Mono<String> noLogging() {
+        return Mono.just("no-logging");
+    }
+
+    @MessageMapping("/server/data/no-logging-header")
+    public Mono<String> noLoggingHeader(@RequestHeader(name = "x-extra-header") String extraHeader) {
+        return Mono.just(extraHeader);
+    }
+
     @MessageMapping
     @PostMapping("/server/data/file-upload")
     public Flux<String> getData(@RequestPartName String partName, Flux<DataBuffer> dataBufferFlux) {
         String userDir = System.getProperty("user.dir");
         String savedFilePath = userDir + File.separator + partName;
-        return DataBufferUtils.write(dataBufferFlux, Paths.get(savedFilePath), StandardOpenOption.CREATE_NEW)
+        return DataBufferUtils.write(dataBufferFlux, Paths.get(savedFilePath), CREATE_NEW, TRUNCATE_EXISTING)
                 .thenMany(Mono.defer(() -> {
                     return Mono.fromCallable(() -> {
                                 File savedFile = new File(savedFilePath);
                                 long length = savedFile.length();
-                                savedFile.deleteOnExit();
+                                savedFile.delete();
                                 return length;
                             })
                             .map(length -> partName + ":" + length);

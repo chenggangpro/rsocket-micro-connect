@@ -47,8 +47,8 @@ import org.springframework.web.util.pattern.PathPatternParser;
 import org.springframework.web.util.pattern.PathPatternRouteMatcher;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
+import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionInterceptor.InterceptorType;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.interceptor.ChainedRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.CachedRSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.ClientLoggingRSocketInterceptor;
@@ -57,9 +57,12 @@ import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequeste
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DefaultRSocketLoadBalanceStrategies;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.DiscoverRSocketRequesterRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.loadbalance.RSocketLoadBalanceStrategies;
+import pro.chenggang.project.rsocket.micro.connect.spring.common.AttributeLifecycleRSocketInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.DefaultRSocketMicroConnectorRegistry;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorExecutionCustomizer;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorRegistry;
+
+import java.util.Comparator;
 
 import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_MEDIA_TYPE;
@@ -154,22 +157,31 @@ public class RSocketMicroConnectClientAutoConfiguration {
     }
 
     @Bean
-    public ClientLoggingRSocketInterceptor clientSideLoggingRSocketExecutionInterceptor(RSocketStrategies rSocketStrategies) {
-        return new ClientLoggingRSocketInterceptor(rSocketStrategies);
+    public AttributeLifecycleRSocketInterceptor attributeLifecycleRSocketInterceptor(RSocketStrategies rSocketStrategies) {
+        return new AttributeLifecycleRSocketInterceptor(rSocketStrategies);
+    }
+
+    @Bean
+    public ClientLoggingRSocketInterceptor clientSideLoggingRSocketExecutionInterceptor(RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties) {
+        return new ClientLoggingRSocketInterceptor(rSocketMicroConnectClientProperties);
     }
 
     @Bean
     public RSocketConnectorConfigurer clientLoggingRSocketConnectorConfigurer(RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties,
                                                                               ObjectProvider<RSocketExecutionBeforeInterceptor> beforeInterceptors,
-                                                                              ObjectProvider<RSocketExecutionAfterInterceptor> afterInterceptors,
-                                                                              ObjectProvider<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
+                                                                              ObjectProvider<RSocketExecutionAfterInterceptor> afterInterceptors) {
         return connector -> connector
                 .interceptors(interceptorRegistry -> interceptorRegistry
                         .forRequester(new ChainedRSocketInterceptor(rSocketMicroConnectClientProperties.getDefaultDataMimeType(),
                                 rSocketMicroConnectClientProperties.getDefaultMetadataMimeType(),
-                                beforeInterceptors.orderedStream().filter(InterceptorType::isClientSide).toList(),
-                                afterInterceptors.orderedStream().filter(InterceptorType::isClientSide).toList(),
-                                unexpectedInterceptors.orderedStream().filter(InterceptorType::isClientSide).toList()
+                                beforeInterceptors.stream()
+                                        .sorted(Comparator.comparing(RSocketExecutionInterceptor::order))
+                                        .filter(InterceptorType::isClientSide)
+                                        .toList(),
+                                afterInterceptors.stream()
+                                        .sorted(Comparator.comparing(RSocketExecutionInterceptor::order))
+                                        .filter(InterceptorType::isClientSide)
+                                        .toList()
                         ))
                 );
     }

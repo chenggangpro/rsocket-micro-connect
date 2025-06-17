@@ -21,17 +21,14 @@ import io.rsocket.Payload;
 import io.rsocket.RSocket;
 import io.rsocket.metadata.WellKnownMimeType;
 import io.rsocket.util.RSocketProxy;
-import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Publisher;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExchangeType;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.DefaultRSocketExchange;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutionAfterInterceptorChain;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutionBeforeInterceptorChain;
-import pro.chenggang.project.rsocket.micro.connect.core.defaults.RSocketExecutionUnexpectedInterceptorChain;
 import pro.chenggang.project.rsocket.micro.connect.core.defaults.RemoteRSocketInfo;
 import pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil;
 import reactor.core.publisher.Flux;
@@ -43,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExchangeType.FIRE_AND_FORGET;
 import static pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExchangeType.METADATA_PUSH;
@@ -62,22 +58,18 @@ import static pro.chenggang.project.rsocket.micro.connect.core.defaults.DefaultR
 @Slf4j
 public class ChainedInterceptedRSocket extends RSocketProxy {
 
-    private static final String CLEANUP_ATTRIBUTE_KEY = ChainedInterceptedRSocket.class.getName() + ".cleanup-attribute-key";
-
     private final WellKnownMimeType dataMimeType;
     private final WellKnownMimeType metadataMimeType;
     private final RSocketExecutionBeforeInterceptorChain beforeChain;
     private final RSocketExecutionAfterInterceptorChain afterChain;
-    private final RSocketExecutionUnexpectedInterceptorChain unexpectedChain;
     private final Cache<RSocket, RemoteRSocketInfo> remoteRSocketInfoCache;
 
     protected ChainedInterceptedRSocket(RSocket source,
                                         WellKnownMimeType dataMimeType,
                                         WellKnownMimeType metadataMimeType,
                                         List<RSocketExecutionBeforeInterceptor> beforeInterceptors,
-                                        List<RSocketExecutionAfterInterceptor> afterInterceptors,
-                                        List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
-        this(source, dataMimeType, metadataMimeType, null, beforeInterceptors, afterInterceptors, unexpectedInterceptors);
+                                        List<RSocketExecutionAfterInterceptor> afterInterceptors) {
+        this(source, dataMimeType, metadataMimeType, null, beforeInterceptors, afterInterceptors);
     }
 
     protected ChainedInterceptedRSocket(RSocket source,
@@ -85,8 +77,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                         WellKnownMimeType metadataMimeType,
                                         RemoteRSocketInfo remoteRSocketInfo,
                                         List<RSocketExecutionBeforeInterceptor> beforeInterceptors,
-                                        List<RSocketExecutionAfterInterceptor> afterInterceptors,
-                                        List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors) {
+                                        List<RSocketExecutionAfterInterceptor> afterInterceptors) {
         super(source);
         this.dataMimeType = dataMimeType;
         this.metadataMimeType = metadataMimeType;
@@ -104,7 +95,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
         }
         this.beforeChain = new RSocketExecutionBeforeInterceptorChain(beforeInterceptors);
         this.afterChain = new RSocketExecutionAfterInterceptorChain(afterInterceptors);
-        this.unexpectedChain = new RSocketExecutionUnexpectedInterceptorChain(unexpectedInterceptors);
     }
 
     @Override
@@ -134,7 +124,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                                                 .flatMapMany(chain -> {
                                                     return Flux.from(payloads)
                                                             .switchOnFirst(((signal, payloadFlux) -> {
-                                                                if(signal.hasValue()){
+                                                                if (signal.hasValue()) {
                                                                     DefaultRSocketExchange exchange = newExchange(
                                                                             REQUEST_CHANNEL,
                                                                             signal.get(),
@@ -227,7 +217,6 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     private Mono<Map<String, Object>> initializeAttributes() {
         return Mono.fromSupplier(() -> {
             final ConcurrentHashMap<String, Object> attributes = new ConcurrentHashMap<>();
-            attributes.put(CLEANUP_ATTRIBUTE_KEY, new AtomicBoolean(false));
             RemoteRSocketInfo remoteRSocketInfo = this.remoteRSocketInfoCache.get(source,
                     rsocket -> {
                         Optional<RemoteRSocketInfo> optionalInfo = RSocketMicroConnectUtil.getRemoteRSocketInfo(source);
@@ -246,56 +235,33 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
     }
 
     private Mono<Void> invokeOnComplete(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes) {
-        return this.checkCleanupAttribute(attributes, true)
-                .filter(Boolean::booleanValue)
-                .flatMap(__ -> {
-                    DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
-                            dataMimeType,
-                            metadataMimeType,
-                            attributes
-                    );
-                    return afterChain.next(exchange);
-                })
-                .then(Mono.defer(() -> this.cleanupAttributes(attributes)));
+        DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
+                dataMimeType,
+                metadataMimeType,
+                attributes
+        );
+        return afterChain.next(exchange);
     }
 
-    private Mono<Void> invokeOnError(RSocketExchangeType rSocketExchangeType,
-                                     Map<String, Object> attributes,
-                                     Throwable err) {
-        return this.checkCleanupAttribute(attributes, true)
-                .filter(Boolean::booleanValue)
-                .flatMap(__ -> {
-                    DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
-                            dataMimeType,
-                            metadataMimeType,
-                            attributes,
-                            err
-                    );
-                    return unexpectedChain.next(exchange);
-                })
-                .then(Mono.defer(() -> this.cleanupAttributes(attributes)));
+    private Mono<Void> invokeOnError(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes, Throwable err) {
+        DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
+                dataMimeType,
+                metadataMimeType,
+                attributes,
+                err
+        );
+        return afterChain.next(exchange);
     }
 
-    private Mono<?> invokeOnCancel(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes) {
-        return this.checkCleanupAttribute(attributes, false)
-                .filter(Boolean::booleanValue)
-                .flatMap(__ -> {
-                    DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
-                            dataMimeType,
-                            metadataMimeType,
-                            attributes
-                    );
-                    return afterChain.next(exchange);
-                })
-                .then(Mono.defer(() -> this.cleanupAttributes(attributes)));
+    private Mono<Void> invokeOnCancel(RSocketExchangeType rSocketExchangeType, Map<String, Object> attributes) {
+        DefaultRSocketExchange exchange = newExchange(rSocketExchangeType,
+                dataMimeType,
+                metadataMimeType,
+                attributes
+        );
+        return afterChain.next(exchange);
     }
 
-    private Mono<Void> cleanupAttributes(Map<String, Object> attributes) {
-        return Mono.justOrEmpty(attributes)
-                .filter(dataMap -> !dataMap.isEmpty())
-                .flatMap(dataMap -> Mono.fromRunnable(dataMap::clear))
-                .then();
-    }
 
     @Override
     public String toString() {
@@ -303,24 +269,7 @@ public class ChainedInterceptedRSocket extends RSocketProxy {
                 + "[source=" + this.source
                 + ", BeforeChain=" + this.beforeChain
                 + ", AfterChain=" + this.afterChain
-                + ", FinallyChain=" + this.unexpectedChain
                 + "]";
     }
 
-    /**
-     * Check cleanup attribute.
-     *
-     * @param attributes the attributes
-     * @return the cleanup flag
-     */
-    protected Mono<Boolean> checkCleanupAttribute(@NonNull Map<String, Object> attributes, boolean checkUnCleanup) {
-        Object cleanupAttribute = attributes.get(CLEANUP_ATTRIBUTE_KEY);
-        if (Objects.isNull(cleanupAttribute) || !(cleanupAttribute instanceof AtomicBoolean)) {
-            return Mono.error(new IllegalStateException("The cleanup attribute can not be removed manually"));
-        }
-        if (checkUnCleanup && ((AtomicBoolean) cleanupAttribute).get()) {
-            return Mono.error(new IllegalStateException("The cleanup attribute can not be modified manually"));
-        }
-        return Mono.just(((AtomicBoolean) cleanupAttribute).compareAndSet(false, true));
-    }
 }

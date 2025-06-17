@@ -168,9 +168,37 @@ class SimpleClientControllerTest extends ConnectExampleClientApiApplicationTests
     }
 
     @Test
+    void getDataWithNoLogging() {
+        this.webTestClient.get()
+                .uri(uriBuilder -> getDefaultUri(uriBuilder)
+                        .path("/client/data/no-logging")
+                        .build()
+                )
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .accept(MediaType.TEXT_PLAIN)
+                .exchange()
+                .expectBody(String.class)
+                .value(result -> assertEquals("no-logging", result));
+    }
+
+    @Test
+    void getDataWithNoLoggingHeader() {
+        this.webTestClient.get()
+                .uri(uriBuilder -> getDefaultUri(uriBuilder)
+                        .path("/client/data/no-logging-header")
+                        .build()
+                )
+                .header(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE)
+                .accept(MediaType.TEXT_PLAIN)
+                .exchange()
+                .expectBody(String.class)
+                .value(result -> assertEquals("x-extra-header-value", result));
+    }
+
+    @Test
     void postDataWithUploadFile() throws IOException {
         MultipartBodyBuilder builder = new MultipartBodyBuilder();
-        ClassPathResource classPathResource = new ClassPathResource("application.yml");
+        ClassPathResource classPathResource = new ClassPathResource("logback.xml");
         long length = classPathResource.getFile().length();
         builder.part("file", classPathResource);
         this.webTestClient.post()
@@ -183,6 +211,6 @@ class SimpleClientControllerTest extends ConnectExampleClientApiApplicationTests
                 .body(BodyInserters.fromMultipartData(builder.build()))
                 .exchange()
                 .expectBody(String.class)
-                .value(result -> assertEquals("application.yml:" + length, result));
+                .value(result -> assertEquals("logback.xml:" + length, result));
     }
 }

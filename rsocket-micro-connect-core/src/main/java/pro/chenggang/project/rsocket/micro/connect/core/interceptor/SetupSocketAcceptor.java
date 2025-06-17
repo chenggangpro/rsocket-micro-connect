@@ -24,7 +24,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionAfterInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionBeforeInterceptor;
-import pro.chenggang.project.rsocket.micro.connect.core.api.RSocketExecutionUnexpectedInterceptor;
 import pro.chenggang.project.rsocket.micro.connect.core.util.RSocketMicroConnectUtil;
 import reactor.core.publisher.Mono;
 
@@ -49,7 +48,6 @@ public class SetupSocketAcceptor implements SocketAcceptor {
     private final SocketAcceptor delegate;
     private final List<RSocketExecutionBeforeInterceptor> beforeInterceptors;
     private final List<RSocketExecutionAfterInterceptor> afterInterceptors;
-    private final List<RSocketExecutionUnexpectedInterceptor> unexpectedInterceptors;
 
     @Override
     public Mono<RSocket> accept(ConnectionSetupPayload setup, RSocket sendingSocket) {
@@ -66,15 +64,13 @@ public class SetupSocketAcceptor implements SocketAcceptor {
                                 metadataMimeType,
                                 remoteRSocketInfo,
                                 beforeInterceptors,
-                                afterInterceptors,
-                                unexpectedInterceptors
+                                afterInterceptors
                         ))
                         .defaultIfEmpty(new ChainedInterceptedRSocket(rSocket,
                                 dataMimeType,
                                 metadataMimeType,
                                 beforeInterceptors,
-                                afterInterceptors,
-                                unexpectedInterceptors
+                                afterInterceptors
                         )));
     }
 
