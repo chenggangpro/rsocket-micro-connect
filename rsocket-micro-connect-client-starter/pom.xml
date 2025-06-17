@@ -28,6 +28,36 @@
 
     <artifactId>rsocket-micro-connect-client-starter</artifactId>
 
+    <name>rsocket-micro-connect-client-starter</name>
+    <description>RSocket Micro Connect Client Starter</description>
+    <url>https://github.com/chenggangpro/rsocket-micro-connect</url>
+
+    <licenses>
+        <license>
+            <name>The Apache Software License, Version 2.0</name>
+            <url>https://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <developers>
+        <developer>
+            <id>ChengGang</id>
+            <name>ChengGang</name>
+            <email>chenggangpro@gmail.com</email>
+            <roles>
+                <role>Maintainer</role>
+            </roles>
+        </developer>
+    </developers>
+
+    <scm>
+        <tag>${project.version}</tag>
+        <connection>scm:git:git@github.com:chenggangpro/rsocket-micro-connect.git</connection>
+        <developerConnection>scm:git:git@github.com:chenggangpro/rsocket-micro-connect.git</developerConnection>
+        <url>https://github.com/chenggangpro/rsocket-micro-connect</url>
+    </scm>
+
     <properties>
         <java.version>17</java.version>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
