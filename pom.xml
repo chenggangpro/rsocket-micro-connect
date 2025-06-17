@@ -23,7 +23,7 @@
 
     <groupId>pro.chenggang</groupId>
     <artifactId>rsocket-micro-connect</artifactId>
-    <version>0.2.0-SNAPSHOT</version>
+    <version>0.2.0.RELEASE</version>
     <packaging>pom</packaging>
 
     <name>rsocket-micro-connect</name>
@@ -64,7 +64,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <error-prone.version>2.36.0</error-prone.version>
         <license-maven-plugin.version>4.6</license-maven-plugin.version>
-        <spring-boot-starter-parent.version>3.3.10</spring-boot-starter-parent.version>
+        <spring-boot-starter-parent.version>3.3.12</spring-boot-starter-parent.version>
         <spring-cloud.version>2023.0.5</spring-cloud.version>
         <reactor-bom.version>2024.0.4</reactor-bom.version>
         <lombok.version>1.18.36</lombok.version>
