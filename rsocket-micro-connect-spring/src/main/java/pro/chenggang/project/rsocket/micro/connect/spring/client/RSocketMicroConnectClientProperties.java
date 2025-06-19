@@ -18,6 +18,7 @@ package pro.chenggang.project.rsocket.micro.connect.spring.client;
 import io.rsocket.metadata.WellKnownMimeType;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.boot.context.properties.NestedConfigurationProperty;
 import pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperties;
 
 import java.time.Duration;
@@ -42,6 +43,7 @@ public class RSocketMicroConnectClientProperties {
     /**
      * The Logging properties.
      */
+    @NestedConfigurationProperty
     public LoggingProperties logging;
 
     /**
