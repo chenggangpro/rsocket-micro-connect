@@ -33,9 +33,15 @@ import pro.chenggang.project.rsocket.micro.connect.spring.common.LoggingProperti
 public class RSocketMicroConnectServerProperties {
 
     /**
-     * The properties PREFIX.
+     * The properties PROPERTIES_PREFIX.
      */
-    public static final String PREFIX = "rsocket-micro-connect.server";
+    public static final String PROPERTIES_PREFIX = "rsocket-micro-connect.server";
+
+    /**
+     * Whether the rsocket micro connect server is enabled.
+     * Default value is true.
+     */
+    public boolean enabled = true;
 
     /**
      * The Logging properties.

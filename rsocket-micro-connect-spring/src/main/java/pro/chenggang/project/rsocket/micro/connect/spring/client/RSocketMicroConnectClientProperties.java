@@ -36,9 +36,15 @@ import java.util.List;
 public class RSocketMicroConnectClientProperties {
 
     /**
-     * The properties PREFIX.
+     * The properties PROPERTIES_PREFIX.
      */
-    public static final String PREFIX = "rsocket-micro-connect.client";
+    public static final String PROPERTIES_PREFIX = "rsocket-micro-connect.client";
+
+    /**
+     * Whether the rsocket micro connect client is enabled.
+     * Default value is true.
+     */
+    public boolean enabled = true;
 
     /**
      * The Logging properties.

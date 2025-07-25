@@ -32,6 +32,7 @@ import org.springframework.boot.actuate.autoconfigure.tracing.TracingProperties;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.rsocket.RSocketMessagingAutoConfiguration;
 import org.springframework.boot.autoconfigure.rsocket.RSocketStrategiesAutoConfiguration;
 import org.springframework.boot.rsocket.server.RSocketServerCustomizer;
@@ -41,11 +42,13 @@ import org.springframework.messaging.rsocket.RSocketStrategies;
 
 import static org.springframework.boot.actuate.autoconfigure.tracing.MicrometerTracingAutoConfiguration.DEFAULT_TRACING_OBSERVATION_HANDLER_ORDER;
 import static org.springframework.boot.actuate.autoconfigure.tracing.TracingProperties.Propagation.PropagationType.B3;
+import static pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties.PROPERTIES_PREFIX;
 
 @Slf4j
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class, Tracer.class})
 @ConditionalOnBean({Tracer.class, Propagator.class, TracingProperties.class, ObservationRegistry.class})
+@ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enabled", havingValue = "true", matchIfMissing = true)
 public class RSocketMicroConnectServerTracingAutoConfiguration {
 
     @Bean

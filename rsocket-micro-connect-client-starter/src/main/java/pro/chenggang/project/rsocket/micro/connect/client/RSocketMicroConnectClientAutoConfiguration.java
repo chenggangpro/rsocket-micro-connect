@@ -65,6 +65,7 @@ import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConn
 import java.util.Comparator;
 
 import static org.springframework.beans.factory.config.ConfigurableBeanFactory.SCOPE_PROTOTYPE;
+import static pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties.PROPERTIES_PREFIX;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_FILE_PART_NAME_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_MEDIA_TYPE;
@@ -80,10 +81,11 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 @Slf4j
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class, RSocketRequesterAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class})
+@ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enabled", havingValue = "true", matchIfMissing = true)
 public class RSocketMicroConnectClientAutoConfiguration {
 
     @Bean
-    @ConfigurationProperties(prefix = RSocketMicroConnectClientProperties.PREFIX)
+    @ConfigurationProperties(prefix = PROPERTIES_PREFIX)
     public RSocketMicroConnectClientProperties rSocketMicroConnectClientProperties() {
         return new RSocketMicroConnectClientProperties();
     }
@@ -197,7 +199,7 @@ public class RSocketMicroConnectClientAutoConfiguration {
 
     @Bean
     @ConditionalOnMissingBean(RSocketRequesterRegistry.class)
-    @ConditionalOnProperty(prefix = RSocketMicroConnectClientProperties.PREFIX, value = "enable-discover", havingValue = "false", matchIfMissing = true)
+    @ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enable-discover", havingValue = "false", matchIfMissing = true)
     public RSocketRequesterRegistry cachedRSocketRequesterRegistry(RSocketRequester.Builder rSocketRequesterBuilder) {
         return new CachedRSocketRequesterRegistry(rSocketRequesterBuilder);
     }
@@ -205,7 +207,7 @@ public class RSocketMicroConnectClientAutoConfiguration {
     @Bean
     @ConditionalOnBean(ReactiveDiscoveryClient.class)
     @ConditionalOnMissingBean(RSocketLoadBalanceStrategies.class)
-    @ConditionalOnProperty(prefix = RSocketMicroConnectClientProperties.PREFIX, value = "enable-discover", havingValue = "true")
+    @ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enable-discover", havingValue = "true")
     public RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies() {
         return new DefaultRSocketLoadBalanceStrategies();
     }
@@ -213,7 +215,7 @@ public class RSocketMicroConnectClientAutoConfiguration {
     @Bean
     @ConditionalOnBean(ReactiveDiscoveryClient.class)
     @ConditionalOnMissingBean(RSocketRequesterRegistry.class)
-    @ConditionalOnProperty(prefix = RSocketMicroConnectClientProperties.PREFIX, value = "enable-discover", havingValue = "true")
+    @ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enable-discover", havingValue = "true")
     public RSocketRequesterRegistry discoverRSocketRequesterRegistry(RSocketRequester.Builder rSocketRequesterBuilder,
                                                                      ReactiveDiscoveryClient reactiveDiscoveryClient,
                                                                      RSocketLoadBalanceStrategies rSocketLoadBalanceStrategies,

@@ -19,6 +19,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.BeanDefinitionRegistry;
 import org.springframework.beans.factory.support.BeanDefinitionRegistryPostProcessor;
 import org.springframework.boot.autoconfigure.AutoConfigurationPackages;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.origin.OriginTrackedValue;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
@@ -38,6 +39,8 @@ import java.util.Objects;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import static pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketMicroConnectClientProperties.PROPERTIES_PREFIX;
+
 /**
  * The rsocket micro connector autoconfigure.
  *
@@ -46,6 +49,7 @@ import java.util.stream.Stream;
  * @since 0.1.0
  */
 @Configuration(proxyBeanMethods = false)
+@ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enabled", havingValue = "true", matchIfMissing = true)
 public class RSocketMicroConnectorAutoConfigure implements BeanDefinitionRegistryPostProcessor, ApplicationContextAware, EnvironmentAware {
 
     private ApplicationContext applicationContext;

@@ -25,6 +25,7 @@ import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.autoconfigure.rsocket.RSocketMessageHandlerCustomizer;
 import org.springframework.boot.autoconfigure.rsocket.RSocketMessagingAutoConfiguration;
 import org.springframework.boot.autoconfigure.rsocket.RSocketStrategiesAutoConfiguration;
@@ -69,6 +70,7 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_HEADER_METADATA_KEY;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_MEDIA_TYPE;
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_METADATA_KEY;
+import static pro.chenggang.project.rsocket.micro.connect.spring.server.RSocketMicroConnectServerProperties.PROPERTIES_PREFIX;
 
 /**
  * @author Gang Cheng
@@ -78,10 +80,11 @@ import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketM
 @Slf4j
 @AutoConfiguration(before = {RSocketStrategiesAutoConfiguration.class, RSocketMessagingAutoConfiguration.class})
 @ConditionalOnClass({RSocket.class, RSocketStrategies.class, PooledByteBufAllocator.class})
+@ConditionalOnProperty(prefix = PROPERTIES_PREFIX, value = "enabled", havingValue = "true", matchIfMissing = true)
 public class RSocketMicroConnectServerAutoConfiguration {
 
     @Bean
-    @ConfigurationProperties(prefix = RSocketMicroConnectServerProperties.PREFIX)
+    @ConfigurationProperties(prefix = PROPERTIES_PREFIX)
     public RSocketMicroConnectServerProperties rSocketMicroConnectServerProperties() {
         return new RSocketMicroConnectServerProperties();
     }
