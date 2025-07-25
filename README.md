@@ -87,6 +87,14 @@ rsocket-micro-connect:
       ```
 * Then you can start the server application.
 
+* Disable RSocket server side autoconfiguration
+
+```yaml
+rsocket-micro-connect:
+  server:
+    enabled: false
+```
+
 ##### Client Side
 
 * Configure logging exclusion for RSocket Client
@@ -143,6 +151,14 @@ public interface SimpleRSocketMicroConnector {
 ```
 
 * Then you can use the bean of the defined interface in your Spring application.
+
+* Disable RSocket client side autoconfiguration 
+
+```yaml
+rsocket-micro-connect:
+  client:
+    enabled: false
+```
 
 #### While Using RSocket with Discovery like Eureka or Nacos
 
