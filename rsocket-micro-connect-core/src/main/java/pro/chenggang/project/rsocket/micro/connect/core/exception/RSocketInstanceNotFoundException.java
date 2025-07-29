@@ -17,6 +17,7 @@ package pro.chenggang.project.rsocket.micro.connect.core.exception;
 
 import io.rsocket.RSocketErrorException;
 import io.rsocket.frame.ErrorFrameCodec;
+import lombok.Getter;
 import lombok.NonNull;
 
 import java.io.Serial;
@@ -26,7 +27,7 @@ import java.net.URI;
  * The rsocket instance not found exception.
  *
  * @author Gang Cheng
- * @version 0.1.0
+ * @version 0.2.0
  * @since 0.1.0
  */
 public class RSocketInstanceNotFoundException extends RSocketErrorException {
@@ -34,8 +35,12 @@ public class RSocketInstanceNotFoundException extends RSocketErrorException {
     @Serial
     private static final long serialVersionUID = -1151855281779918872L;
 
+    @Getter
+    private final URI uri;
+
     public RSocketInstanceNotFoundException(@NonNull URI uri) {
         super(ErrorFrameCodec.CONNECTION_ERROR, "No load-balanced rsocket instance found for transport " + uri);
+        this.uri = uri;
     }
 
 }

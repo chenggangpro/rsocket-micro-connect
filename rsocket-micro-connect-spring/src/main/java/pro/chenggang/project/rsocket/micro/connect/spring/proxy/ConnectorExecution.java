@@ -22,6 +22,7 @@ import org.springframework.util.CollectionUtils;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -32,7 +33,7 @@ import java.util.Objects;
  * The Connector execution.
  *
  * @author Gang Cheng
- * @version 0.1.0
+ * @version 0.2.0
  * @since 0.1.0
  */
 public final class ConnectorExecution {
@@ -64,7 +65,9 @@ public final class ConnectorExecution {
             this.pathVariables.putAll(pathVariables);
         }
         if (Objects.nonNull(headers) && !headers.isEmpty()) {
-            this.headers.putAll(headers);
+            headers.forEach((key, values) -> {
+                this.headers.put(key, new ArrayList<>(values));
+            });
         }
         if (Objects.nonNull(queryParams) && !queryParams.isEmpty()) {
             this.queryParams.putAll(queryParams);
@@ -220,13 +223,14 @@ public final class ConnectorExecution {
     }
 
     /**
-     * Add headers.
+     * Put headers.
+     * This will replace old header values.
      *
      * @param key    the header key can not be null
      * @param values the header values can not be null
      * @return the connector execution
      */
-    public ConnectorExecution addHeaders(@NonNull String key, @NonNull List<String> values) {
+    public ConnectorExecution putHeaders(@NonNull String key, @NonNull List<String> values) {
         if (!values.isEmpty()) {
             this.headers.put(key, values);
         }
@@ -234,14 +238,18 @@ public final class ConnectorExecution {
     }
 
     /**
-     * Add headers.
+     * Put headers.
+     * This will replace old headers.
      *
      * @param headers the headers can not be null
      * @return the connector execution
      */
-    public ConnectorExecution addHeaders(@NonNull MultiValueMap<String, String> headers) {
+    public ConnectorExecution putHeaders(@NonNull MultiValueMap<String, String> headers) {
         if (!headers.isEmpty()) {
-            this.headers.putAll(headers);
+            this.headers.clear();
+            headers.forEach((key, values) -> {
+                this.headers.put(key, new ArrayList<>(values));
+            });
         }
         return this;
     }
