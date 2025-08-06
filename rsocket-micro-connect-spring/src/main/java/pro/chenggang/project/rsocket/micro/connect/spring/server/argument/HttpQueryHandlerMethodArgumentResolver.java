@@ -24,10 +24,10 @@ import org.springframework.messaging.handler.annotation.ValueConstants;
 import org.springframework.messaging.handler.annotation.reactive.AbstractNamedValueMethodArgumentResolver;
 import org.springframework.util.Assert;
 import org.springframework.util.MultiValueMap;
-import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 import static pro.chenggang.project.rsocket.micro.connect.spring.option.RSocketMicroConnectConstant.CONNECTOR_QUERY_METADATA_KEY;
@@ -49,7 +49,7 @@ public class HttpQueryHandlerMethodArgumentResolver extends AbstractNamedValueMe
     @Override
     public boolean supportsParameter(MethodParameter parameter) {
         RequestParam requestParam = parameter.getParameterAnnotation(RequestParam.class);
-        return (requestParam != null && StringUtils.hasText(requestParam.name()));
+        return requestParam != null && !Map.class.isAssignableFrom(parameter.getParameterType());
     }
 
     @Override
