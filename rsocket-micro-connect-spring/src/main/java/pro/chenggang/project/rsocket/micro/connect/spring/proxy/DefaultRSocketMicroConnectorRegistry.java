@@ -17,6 +17,7 @@ package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import org.springframework.core.convert.ConversionService;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 
 import java.util.List;
@@ -34,6 +35,7 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DefaultRSocketMicroConnectorRegistry implements RSocketMicroConnectorRegistry {
 
     private final RSocketRequesterRegistry rSocketRequesterRegistry;
+    private final ConversionService conversionService;
     private final Map<Class<?>, RSocketMicroConnectorProxyFactory<?>> connectorProxyFactoryCache = new ConcurrentHashMap<>();
     private final List<RSocketMicroConnectorExecutionCustomizer> rSocketMicroConnectorExecutionCustomizers;
 
@@ -48,7 +50,7 @@ public class DefaultRSocketMicroConnectorRegistry implements RSocketMicroConnect
                         rSocketMicroConnectorExecutionCustomizers
                 )
         );
-        return (T) rSocketMicroConnectorProxyFactory.newInstance(rSocketRequesterRegistry);
+        return (T) rSocketMicroConnectorProxyFactory.newInstance(rSocketRequesterRegistry, conversionService);
     }
 
 }

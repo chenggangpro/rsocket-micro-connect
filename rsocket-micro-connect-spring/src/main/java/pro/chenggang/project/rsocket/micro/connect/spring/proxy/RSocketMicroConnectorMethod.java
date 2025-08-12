@@ -16,10 +16,13 @@
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
 import lombok.Getter;
+import lombok.NonNull;
 import lombok.extern.slf4j.Slf4j;
+import org.jspecify.annotations.Nullable;
 import org.reactivestreams.Publisher;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.core.annotation.AnnotationUtils;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.core.io.buffer.DataBuffer;
 import org.springframework.http.HttpHeaders;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
@@ -74,11 +77,15 @@ public class RSocketMicroConnectorMethod {
     private final MethodSignature methodSignature;
     private final ConnectorData connectorData;
     private final ResolvedParameterIndexInfo resolvedParameterIndexInfo;
+    @Nullable
+    private final ConversionService conversionService;
     private final List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers;
 
     public RSocketMicroConnectorMethod(Class<?> connectorInterface,
                                        Method method,
+                                       ConversionService conversionService,
                                        List<RSocketMicroConnectorExecutionCustomizer> executionCustomizers) {
+        this.conversionService = conversionService;
         this.methodSignature = new MethodSignature(connectorInterface, method);
         this.connectorData = new ConnectorData(connectorInterface, method);
         this.resolvedParameterIndexInfo = new ResolvedParameterIndexInfo(connectorInterface,
@@ -293,9 +300,9 @@ public class RSocketMicroConnectorMethod {
         Map<String, String> pathVariables = new HashMap<>();
         this.resolvedParameterIndexInfo.getPathVariableIndex()
                 .forEach((pathVariableName, valueIndex) -> {
-                    Object arg = args[valueIndex];
-                    if (Objects.nonNull(arg)) {
-                        pathVariables.put(pathVariableName, arg.toString());
+                    Object argValue = args[valueIndex];
+                    if (Objects.nonNull(argValue)) {
+                        pathVariables.put(pathVariableName, this.applyConversionService(argValue));
                     }
                 });
         if (pathVariables.isEmpty()) {
@@ -349,7 +356,7 @@ public class RSocketMicroConnectorMethod {
             indexList.forEach(index -> {
                 Object argValue = args[index];
                 if (Objects.nonNull(argValue)) {
-                    headers.add(name, argValue.toString());
+                    headers.add(name, this.applyConversionService(argValue));
                 }
             });
         });
@@ -369,7 +376,7 @@ public class RSocketMicroConnectorMethod {
                     indexList.forEach(index -> {
                         Object argValue = args[index];
                         if (Objects.nonNull(argValue)) {
-                            multiValueMap.add(name, argValue.toString());
+                            multiValueMap.add(name, this.applyConversionService(argValue));
                         }
                     });
                 });
@@ -387,10 +394,21 @@ public class RSocketMicroConnectorMethod {
         if (Objects.nonNull(partNameIndex)) {
             Object argValue = args[partNameIndex];
             if (Objects.nonNull(argValue)) {
+                if (!(argValue instanceof CharSequence)) {
+                    throw new IllegalArgumentException("Request part name should be a CharSequence, but got: " + argValue.getClass()
+                            .getName());
+                }
                 return Optional.of(argValue.toString());
             }
         }
         return Optional.empty();
+    }
+
+    private String applyConversionService(@NonNull Object argValue) {
+        if (Objects.nonNull(this.conversionService)) {
+            return conversionService.convert(argValue, String.class);
+        }
+        return String.valueOf(argValue);
     }
 
     @Getter

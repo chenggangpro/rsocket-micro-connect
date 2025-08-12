@@ -36,6 +36,7 @@ import reactor.core.publisher.Mono;
 
 import java.io.File;
 import java.nio.file.Paths;
+import java.time.LocalDate;
 import java.util.Map.Entry;
 
 import static java.nio.file.StandardOpenOption.CREATE_NEW;
@@ -61,7 +62,7 @@ public class ServerController {
 
     @MessageMapping
     @GetMapping("/server/data/query-variable")
-    public Mono<String> getData(@RequestParam("var1") String variable1, @RequestParam("var2") String variable2) {
+    public Mono<String> getData(@RequestParam("var1") LocalDate variable1, @RequestParam("var2") Integer variable2) {
         return Mono.just(variable1 + "," + variable2);
     }
 

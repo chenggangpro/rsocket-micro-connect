@@ -17,6 +17,8 @@ package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
 import lombok.Getter;
 import lombok.NonNull;
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.convert.ConversionService;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 
 import java.lang.reflect.Proxy;
@@ -57,11 +59,14 @@ public class RSocketMicroConnectorProxyFactory<T> {
      * New rsocket micro connector proxy instance.
      *
      * @param rSocketRequesterRegistry the rsocket requester registry
+     * @param conversionService        the optional conversion service
      * @return the rsocket micro connector proxy instance
      */
-    public T newInstance(@NonNull RSocketRequesterRegistry rSocketRequesterRegistry) {
+    public T newInstance(@NonNull RSocketRequesterRegistry rSocketRequesterRegistry,
+                         @Nullable ConversionService conversionService) {
         final RSocketMicroConnectorProxy<T> serviceProxy = new RSocketMicroConnectorProxy<>(connectorInterface,
                 rSocketRequesterRegistry,
+                conversionService,
                 connectorExecutionCustomizers
         );
         return newInstance(serviceProxy);

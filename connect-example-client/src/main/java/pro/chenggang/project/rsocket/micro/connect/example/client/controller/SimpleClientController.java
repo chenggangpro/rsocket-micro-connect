@@ -30,6 +30,7 @@ import pro.chenggang.project.rsocket.micro.connect.example.client.connector.Simp
 import pro.chenggang.project.rsocket.micro.connect.example.client.dto.BodyValue;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +50,7 @@ public class SimpleClientController {
     }
 
     @GetMapping("/client/data/query-variable")
-    public Mono<String> getDataWithQueryParam(@RequestParam("var1") String variable1, @RequestParam("var2") String variable2) {
+    public Mono<String> getDataWithQueryParam(@RequestParam("var1") LocalDate variable1, @RequestParam("var2") Integer variable2) {
         return simpleRSocketMicroConnector.getMultiData(variable1, variable2);
     }
 

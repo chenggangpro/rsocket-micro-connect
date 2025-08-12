@@ -15,6 +15,8 @@
  */
 package pro.chenggang.project.rsocket.micro.connect.spring.proxy;
 
+import org.jspecify.annotations.Nullable;
+import org.springframework.core.convert.ConversionService;
 import pro.chenggang.project.rsocket.micro.connect.spring.client.RSocketRequesterRegistry;
 
 import java.io.Serial;
@@ -77,6 +79,8 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
 
     private final Class<T> connectorInterface;
     private final RSocketRequesterRegistry rSocketRequesterRegistry;
+    @Nullable
+    private final ConversionService conversionService;
     private final List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers;
     private final Map<Method, MicroConnectorMethodInvoker> connectorMethodCache = new ConcurrentHashMap<>();
 
@@ -85,13 +89,16 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
      *
      * @param connectorInterface            the connector interface
      * @param rSocketRequesterRegistry      the rsocket requester registry
+     * @param conversionService             the conversion service
      * @param connectorExecutionCustomizers the connector execution customizer list
      */
     public RSocketMicroConnectorProxy(Class<T> connectorInterface,
                                       RSocketRequesterRegistry rSocketRequesterRegistry,
+                                      ConversionService conversionService,
                                       List<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers) {
         this.connectorInterface = connectorInterface;
         this.rSocketRequesterRegistry = rSocketRequesterRegistry;
+        this.conversionService = conversionService;
         this.connectorExecutionCustomizers = connectorExecutionCustomizers;
     }
 
@@ -110,23 +117,25 @@ public class RSocketMicroConnectorProxy<T> implements InvocationHandler, Seriali
     private MicroConnectorMethodInvoker cachedInvoker(Method method) throws Throwable {
         try {
             return connectorMethodCache.computeIfAbsent(method, m -> {
-                if (m.isDefault()) {
-                    try {
-                        if (privateLookupInMethod == null) {
-                            return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava8(method));
+                        if (m.isDefault()) {
+                            try {
+                                if (privateLookupInMethod == null) {
+                                    return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava8(method));
+                                }
+                                return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava9(method));
+                            } catch (IllegalAccessException | InstantiationException | InvocationTargetException |
+                                     NoSuchMethodException e) {
+                                throw new RuntimeException(e);
+                            }
+                        } else {
+                            return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(connectorInterface,
+                                    method,
+                                    conversionService,
+                                    connectorExecutionCustomizers
+                            ));
                         }
-                        return new DefaultMicroConnectorMethodInvoker(getMethodHandleJava9(method));
-                    } catch (IllegalAccessException | InstantiationException | InvocationTargetException |
-                             NoSuchMethodException e) {
-                        throw new RuntimeException(e);
                     }
-                } else {
-                    return new PlainMicroConnectorMethodInvoker(new RSocketMicroConnectorMethod(connectorInterface,
-                            method,
-                            connectorExecutionCustomizers
-                    ));
-                }
-            });
+            );
         } catch (RuntimeException re) {
             Throwable cause = re.getCause();
             throw cause == null ? re : cause;

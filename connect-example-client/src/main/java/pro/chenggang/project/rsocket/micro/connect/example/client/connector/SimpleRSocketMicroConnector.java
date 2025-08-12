@@ -29,6 +29,8 @@ import pro.chenggang.project.rsocket.micro.connect.spring.annotation.RequestPart
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.time.LocalDate;
+
 /**
  * @author Gang Cheng
  * @version 0.1.0
@@ -41,7 +43,7 @@ public interface SimpleRSocketMicroConnector {
     Mono<String> getSingleData(@PathVariable("variable") String variable);
 
     @RequestMapping("/server/data/query-variable")
-    Mono<String> getMultiData(@RequestParam("var1") String variable1, @RequestParam("var2") String variable2);
+    Mono<String> getMultiData(@RequestParam("var1") LocalDate variable1, @RequestParam("var2") Integer variable2);
 
     @MessageMapping("/server/data/body")
     Mono<String> sendBodyData(@RequestBody BodyValue bodyValue);

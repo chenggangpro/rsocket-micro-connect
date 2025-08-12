@@ -21,6 +21,7 @@ import io.netty.buffer.PooledByteBufAllocator;
 import io.rsocket.RSocket;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
@@ -34,6 +35,7 @@ import org.springframework.boot.rsocket.messaging.RSocketStrategiesCustomizer;
 import org.springframework.cloud.client.discovery.ReactiveDiscoveryClient;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Scope;
+import org.springframework.core.convert.ConversionService;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.codec.cbor.Jackson2CborDecoder;
 import org.springframework.http.codec.cbor.Jackson2CborEncoder;
@@ -230,8 +232,10 @@ public class RSocketMicroConnectClientAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean(RSocketMicroConnectorRegistry.class)
     public RSocketMicroConnectorRegistry rSocketMicroConnectorRegistry(RSocketRequesterRegistry rSocketRequesterRegistry,
+                                                                       @Autowired(required = false) ConversionService conversionService,
                                                                        ObjectProvider<RSocketMicroConnectorExecutionCustomizer> connectorExecutionCustomizers) {
         return new DefaultRSocketMicroConnectorRegistry(rSocketRequesterRegistry,
+                conversionService,
                 connectorExecutionCustomizers.orderedStream().toList()
         );
     }

@@ -6,6 +6,10 @@ spring:
   jackson:
     locale: zh_CN
     time-zone: "Asia/Shanghai"
+  webflux:
+    format:
+      date: yyyy-MM-dd
+      date-time: yyyy-MM-dd HH:mm:ss
 server:
   port: 9092
   shutdown: graceful

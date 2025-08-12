@@ -30,6 +30,7 @@ import pro.chenggang.project.rsocket.micro.connect.example.client.ConnectExample
 import pro.chenggang.project.rsocket.micro.connect.example.client.dto.BodyValue;
 
 import java.io.IOException;
+import java.time.LocalDate;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -75,7 +76,7 @@ class SimpleClientControllerTest extends ConnectExampleClientApiApplicationTests
         this.webTestClient.get()
                 .uri(uriBuilder -> getDefaultUri(uriBuilder)
                         .path("/client/data/query-variable")
-                        .queryParam("var1", "123")
+                        .queryParam("var1", LocalDate.of(2025,1,1))
                         .queryParam("var2", "456")
                         .build()
                 )
@@ -83,7 +84,7 @@ class SimpleClientControllerTest extends ConnectExampleClientApiApplicationTests
                 .accept(MediaType.TEXT_PLAIN)
                 .exchange()
                 .expectBody(String.class)
-                .value(result -> assertEquals("123,456", result));
+                .value(result -> assertEquals( "2025-01-01,456", result));
     }
 
     @Test
