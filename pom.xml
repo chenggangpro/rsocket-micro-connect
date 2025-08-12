@@ -23,7 +23,7 @@
 
     <groupId>pro.chenggang</groupId>
     <artifactId>rsocket-micro-connect</artifactId>
-    <version>0.2.7-SNAPSHOT</version>
+    <version>0.2.7.RELEASE</version>
     <packaging>pom</packaging>
 
     <name>rsocket-micro-connect</name>
