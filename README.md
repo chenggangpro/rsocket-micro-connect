@@ -278,7 +278,7 @@ public class RSocketMicroConnectorConfiguration {
 
 ### Advanced Usages
 
-* There are three interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`.
+* There are two interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`.
 * The interceptors are:
     * [RSocketExecutionBeforeInterceptor.java](rsocket-micro-connect-core/src/main/java/pro/chenggang/project/rsocket/micro/connect/core/api/RSocketExecutionBeforeInterceptor.java)
         * This interceptor executes before the actual RSocket execution and invokes in <b>ASCENDING</b> order.
