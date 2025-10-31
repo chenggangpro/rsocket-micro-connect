@@ -87,7 +87,7 @@ rsocket-micro-connect:
       ```
 * Then you can start the server application.
 
-* Disable RSocket server side autoconfiguration
+* If you want to disable server side autoconfiguration, you can use following properties for configuration
 
 ```yaml
 rsocket-micro-connect:
@@ -152,7 +152,7 @@ public interface SimpleRSocketMicroConnector {
 
 * Then you can use the bean of the defined interface in your Spring application.
 
-* Disable RSocket client side autoconfiguration 
+* If you want to disable client side autoconfiguration, you can use following properties for configuration
 
 ```yaml
 rsocket-micro-connect:
