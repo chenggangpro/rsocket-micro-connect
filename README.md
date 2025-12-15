@@ -1,4 +1,4 @@
-# rsocket-micro-connect
+# rsocket-micro-connect  [![Maven Central](https://img.shields.io/maven-central/v/pro.chenggang/rsocket-micro-connect?versionSuffix=RELEASE&color=%2352c82c)](https://central.sonatype.com/artifact/pro.chenggang/rsocket-micro-connect)
 
 This project enables services to maintain compatibility with HTTP-based RPC communication (using JSON) while incorporating RSocket to take advantage of its advanced features and capabilities. It serves as a compelling alternative to OpenFeign or WebClient, which are commonly employed for HTTP-based remote procedure calls (RPC) within Spring Boot or Spring Cloud frameworks.
 
