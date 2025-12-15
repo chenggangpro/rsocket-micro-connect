@@ -87,7 +87,7 @@ rsocket-micro-connect:
       ```
 * Then you can start the server application.
 
-* Disable RSocket server side autoconfiguration
+* If you want to disable server side autoconfiguration, you can use following properties for configuration
 
 ```yaml
 rsocket-micro-connect:
@@ -152,7 +152,7 @@ public interface SimpleRSocketMicroConnector {
 
 * Then you can use the bean of the defined interface in your Spring application.
 
-* Disable RSocket client side autoconfiguration 
+* If you want to disable client side autoconfiguration, you can use following properties for configuration
 
 ```yaml
 rsocket-micro-connect:
@@ -278,7 +278,7 @@ public class RSocketMicroConnectorConfiguration {
 
 ### Advanced Usages
 
-* There are three interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`.
+* There are two interceptors in both `rsocket-micro-connect-client-starter` and `rsocket-micro-connect-server-starter`.
 * The interceptors are:
     * [RSocketExecutionBeforeInterceptor.java](rsocket-micro-connect-core/src/main/java/pro/chenggang/project/rsocket/micro/connect/core/api/RSocketExecutionBeforeInterceptor.java)
         * This interceptor executes before the actual RSocket execution and invokes in <b>ASCENDING</b> order.
