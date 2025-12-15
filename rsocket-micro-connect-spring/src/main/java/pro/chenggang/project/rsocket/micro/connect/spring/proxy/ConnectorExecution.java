@@ -223,6 +223,17 @@ public final class ConnectorExecution {
     }
 
     /**
+     * Add headers.
+     *
+     * @param headers the headers can not be null
+     * @return the connector execution
+     */
+    public ConnectorExecution addHeaders(@NonNull MultiValueMap<String, String> headers) {
+        this.headers.addAll(headers);
+        return this;
+    }
+
+    /**
      * Put headers.
      * This will replace old header values.
      *

@@ -43,13 +43,7 @@ public class RSocketMicroConnectorConfiguration {
                     .flatMap(serverWebExchange -> {
                         return Mono.fromRunnable(() -> {
                             HttpHeaders headers = serverWebExchange.getRequest().getHeaders();
-                            if (!headers.isEmpty()) {
-                                headers.forEach((key, values) -> {
-                                    for (String value : values) {
-                                        connectorExecution.addHeader(key, value);
-                                    }
-                                });
-                            }
+                            connectorExecution.addHeaders(headers);
                         });
                     });
         };
