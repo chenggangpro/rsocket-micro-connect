@@ -17,6 +17,7 @@ package pro.chenggang.project.rsocket.micro.connect.example.client.configuration
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpHeaders;
 import org.springframework.web.filter.reactive.ServerWebExchangeContextFilter;
 import org.springframework.web.server.ServerWebExchange;
 import pro.chenggang.project.rsocket.micro.connect.spring.proxy.RSocketMicroConnectorExecutionCustomizer;
@@ -40,9 +41,16 @@ public class RSocketMicroConnectorConfiguration {
                                 .switchIfEmpty(Mono.error(new IllegalStateException("No ServerWebExchange found in context")));
                     })
                     .flatMap(serverWebExchange -> {
-                        return Mono.fromRunnable(() -> connectorExecution.putHeaders(serverWebExchange.getRequest()
-                                .getHeaders())
-                        );
+                        return Mono.fromRunnable(() -> {
+                            HttpHeaders headers = serverWebExchange.getRequest().getHeaders();
+                            if (!headers.isEmpty()) {
+                                headers.forEach((key, values) -> {
+                                    for (String value : values) {
+                                        connectorExecution.addHeader(key, value);
+                                    }
+                                });
+                            }
+                        });
                     });
         };
     }
