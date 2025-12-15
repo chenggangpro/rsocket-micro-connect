@@ -64,18 +64,18 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <error-prone.version>2.36.0</error-prone.version>
         <license-maven-plugin.version>4.6</license-maven-plugin.version>
-        <spring-boot-starter-parent.version>3.3.12</spring-boot-starter-parent.version>
-        <spring-cloud.version>2023.0.5</spring-cloud.version>
-        <reactor-bom.version>2024.0.4</reactor-bom.version>
+        <spring-boot-starter-parent.version>3.4.9</spring-boot-starter-parent.version>
+        <spring-cloud.version>2024.0.2</spring-cloud.version>
+        <reactor-bom.version>2024.0.13</reactor-bom.version>
         <lombok.version>1.18.36</lombok.version>
         <rsocket.version>1.1.5</rsocket.version>
-        <logback.version>1.5.17</logback.version>
+        <logback.version>1.5.22</logback.version>
         <slf4j.version>2.0.17</slf4j.version>
-        <caffeine.version>3.2.0</caffeine.version>
-        <blockhound.version>1.0.11.RELEASE</blockhound.version>
+        <caffeine.version>3.2.2</caffeine.version>
+        <blockhound.version>1.0.13.RELEASE</blockhound.version>
         <junit.version>5.12.1</junit.version>
         <assertj.version>3.27.3</assertj.version>
-        <central-publishing-maven-plugin.version>0.7.0</central-publishing-maven-plugin.version>
+        <central-publishing-maven-plugin.version>0.9.0</central-publishing-maven-plugin.version>
     </properties>
 
     <dependencyManagement>
