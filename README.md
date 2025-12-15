@@ -263,8 +263,10 @@ public class RSocketMicroConnectorConfiguration {
                                 .switchIfEmpty(Mono.error(new IllegalStateException("No ServerWebExchange found in context")));
                     })
                     .flatMap(serverWebExchange -> {
-                        return Mono.fromRunnable(() -> connectorExecution.addHeaders(serverWebExchange.getRequest()
-                                .getHeaders()));
+                        return Mono.fromRunnable(() -> {
+                            HttpHeaders headers = serverWebExchange.getRequest().getHeaders();
+                            connectorExecution.addHeaders(headers);
+                        });
                     });
         };
     }
