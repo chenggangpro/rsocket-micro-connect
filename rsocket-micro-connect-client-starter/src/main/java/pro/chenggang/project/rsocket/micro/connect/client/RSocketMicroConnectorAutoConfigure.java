@@ -54,10 +54,12 @@ public class RSocketMicroConnectorAutoConfigure implements BeanDefinitionRegistr
 
     private ApplicationContext applicationContext;
     private List<String> additionalPackages;
+    private Environment environment;
 
     @Override
     public void postProcessBeanDefinitionRegistry(BeanDefinitionRegistry registry) throws BeansException {
         RSocketMicroConnectorScanner scanner = new RSocketMicroConnectorScanner(registry);
+        scanner.setEnvironment(this.environment);
         scanner.setResourceLoader(this.applicationContext);
         scanner.registerFilters();
         scanner.scan(StringUtils.tokenizeToStringArray(getTargetPackages(),
@@ -81,6 +83,7 @@ public class RSocketMicroConnectorAutoConfigure implements BeanDefinitionRegistr
 
     @Override
     public void setEnvironment(Environment environment) {
+        this.environment = environment;
         AbstractEnvironment abstractEnvironment = (AbstractEnvironment) environment;
         this.additionalPackages = abstractEnvironment.getPropertySources()
                 .stream()
